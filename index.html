@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="container">
+        {{title}}
+        <table>
+            <tr r-for="item, index in data">
+                <td r-for="child in item">{{child.name}}-{{setContent('index')}}</td>
+            </tr>
+        </table>
+    </div>
+    <script src="src/rebuild.min.js"></script>
+    <script>
+        s.rebuild('#container', {
+            title: '表格',
+            data: [
+              [
+                { name: '姓名', age: 18 },
+                { name: '姓名1', age: 19 },
+                { name: '姓名2', age: 20 },
+              ],
+              [
+                { name: '姓名', age: 18 },
+                { name: '姓名1', age: 19 },
+                { name: '姓名2', age: 20 },
+              ],
+              [
+                { name: '姓名', age: 18 },
+                { name: '姓名1', age: 19 },
+                { name: '姓名2', age: 20 },
+              ]
+            ],
+            setContent() {
+                console.log(this);
+                return 'yes'
+            }
+        })
+    </script>
+</body>
+</html>
