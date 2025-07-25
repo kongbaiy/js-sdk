@@ -17,7 +17,7 @@
     <div id="container">
         {{title}}
         <table>
-            <tr r-for="item, index in data" r-style="color: red;" r-class="{{index > 0 && 'red'}} default-tr">
+            <tr r-for="item, index in data" r-class="{{index > 0 && 'red'}} default-tr">
                 <td r-for="child in item">{{child.name}}-{{setContent(index, index)}}</td>
             </tr>
         </table>
