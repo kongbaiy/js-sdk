@@ -9,7 +9,7 @@
     <div id="container">
         {{title}}
         <table>
-            <tr r-for="item, index in data">
+            <tr r-for="item, index in data" r-style="color: {{index === 0 ? 'red' : '#000'}}">
                 <td r-for="child in item">{{child.name}}-{{setContent(index, index)}}</td>
             </tr>
         </table>
