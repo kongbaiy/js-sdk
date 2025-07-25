@@ -18,11 +18,11 @@
         {{title}}
         <table>
             <tr r-for="item, index in data" r-class="{{index > 0 && 'red'}} default-tr">
-                <td r-for="child in item">{{child.name}}-{{setContent(index, index)}}</td>
+                <td r-for="child in item">{{child.name}}-{{setContent(index, index, child)}}</td>
             </tr>
         </table>
     </div>
-    <script src="src/rebuild.min.js"></script>
+    <script src="dist/index.umd.js"></script>
     <script>
         s.rebuild('#container', {
             title: '表格',
@@ -43,8 +43,9 @@
                 { name: '姓名2', age: 20 },
               ]
             ],
-            setContent(index) {
-               return index + index
+            setContent(index, index2, item) {
+                console.log('item: ', item);
+               return index + index2
             }
         })
     </script>
