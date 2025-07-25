@@ -5,6 +5,7 @@
     "lib": ["ES2021", "DOM"], 
     "declaration": true,          // 生成 .d.ts
     "declarationDir": "dist/types",
+    "emitDeclarationOnly": true,
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
