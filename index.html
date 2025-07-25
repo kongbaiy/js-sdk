@@ -4,12 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <style>
+        .default-tr {
+            background-color: #ddd;
+        }
+        .red {
+            background-color: red;
+        }
+    </style>
 </head>
 <body>
     <div id="container">
         {{title}}
         <table>
-            <tr r-for="item, index in data">
+            <tr r-for="item, index in data" r-style="color: red;" r-class="{{index > 0 && 'red'}} default-tr">
                 <td r-for="child in item">{{child.name}}-{{setContent(index, index)}}</td>
             </tr>
         </table>
