@@ -1,4 +1,5 @@
 import { Tag } from '../types/index.interface';
+
 const TAG_NAME_REGEX = /<\/?\s*([a-zA-Z][a-zA-Z0-9-]*)\b/;  // 获取开始或结束标签的名
 const SINGLE_TAG_REGEX = /<([^\s>]+)/;  // 单标签
 const TAG_REGEX = /<\/?[a-z]+[^>]*>|[^<>]+/gi;  // 开始和结束标签
@@ -36,7 +37,6 @@ function findStartTag(currentIndex: number, tags: any[]) {
 
     return prevTag
 }
-
 
 function operatorsParse(content = '') {
     return content.replace('&gt;', '>').replace('&lt;', '<').replaceAll('&amp;', '&')
@@ -88,7 +88,6 @@ function resolver(htmlStr: string) {
             if (annotation) item.$disabledFor = true;
 
             tags.push(item);
-
         } else {
             tags.push({
                 type: 'content',
@@ -141,11 +140,13 @@ function parseIf(ifContent: string) {
 
 function styleParse(styleContent: string) {
     const styleValue = contentParse(styleContent.match($CONTENT_REGEX)?.[0]);
+    
     return styleContent.replace($CONTENT_REGEX, styleValue)
 }
 
 function classParse(classContent = '') {
     const classValue = contentParse(classContent.match($CONTENT_REGEX)?.[0]);
+
     return classContent.replace($CONTENT_REGEX, classValue)
 }
 
@@ -167,9 +168,10 @@ function parseFor(forContent: string) {
     const indexKey = expressionLeft[1];
     let code = '';
 
-    code += `for (this['${itemKey}'] of this.${iterable} || []) {\n`;
+    code += `for(let i = 0;i < this?.${iterable}?.length; i++) {\n`;
+    code += `this.${itemKey} = this.${iterable}[i];\n`;
 
-    if (indexKey) code += `this.${indexKey} = this.${iterable}.indexOf(this.${itemKey});\n`;
+    if (indexKey) code += `this.${indexKey} = i;\n`;
 
     return code
 }
@@ -179,7 +181,6 @@ function compose(tags: Record<string, any>[]) {
 
     for (let t of tags) {
         const { type, content } = t;
-
 
         if (type === 'node') {
             if (t.$if) {
@@ -242,6 +243,7 @@ function render(html: string, context = {}) {
 
 function replaceElementWithPlaceholder(el: Element, placeholderText = 'PLACEHOLDER') {
     const comment = document.createComment(placeholderText);
+    
     el.replaceWith(comment);
     return comment; // 可以用于恢复
 }
