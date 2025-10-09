@@ -1,5 +1,5 @@
-import { HAS_FEILD, LENGTH_LIMIT } from '../enums/index.enum'
-import { typeIsNull, ISectoralTable } from '../types/index.interface'
+import { HAS_FEILD, LENGTH_LIMIT } from '../enums'
+import { typeIsNull, ISectoralTable } from '../types'
 
 function allToString(
     obj: { [key: string]: any },

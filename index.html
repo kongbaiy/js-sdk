@@ -5,49 +5,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <style>
-        .default-tr {
-            background-color: #ddd;
-        }
-        .red {
-            background-color: red;
+        * {
+            margin: 0;
+            padding: 0;
+            border-radius: none;
         }
     </style>
 </head>
 <body>
-    <div id="container">
-        {{title}}
-        <table>
-            <tr r-for="item, index in data" r-class="{{index > 0 && 'red'}} default-tr">
-                <td r-for="child in item">{{child.name}}-{{setContent(index, index, child)}}</td>
-            </tr>
-        </table>
-    </div>
-    <script src="dist/index.umd.js"></script>
+    <button style="margin-left: 900px;" class="button">按钮</button>
+    <br/>
+    <button style="margin-top: 200px;" class="button2">按钮2</button>
+    <button onclick="tour.start()">开启</button>
+    <button onclick="sendMessage()">send message</button>
+
+    <script src="./dist/index.umd.js"></script>
+    <script src="./dist/ws.umd.js"></script>
+    <script src="./dist/rebuild.umd.js"></script>
     <script>
-        s.rebuild('#container', {
-            title: '表格',
-            data: [
-              [
-                { name: '姓名', age: 18 },
-                { name: '姓名1', age: 19 },
-                { name: '姓名2', age: 20 },
-              ],
-              [
-                { name: '姓名', age: 18 },
-                { name: '姓名1', age: 19 },
-                { name: '姓名2', age: 20 },
-              ],
-              [
-                { name: '姓名', age: 18 },
-                { name: '姓名1', age: 19 },
-                { name: '姓名2', age: 20 },
-              ]
-            ],
-            setContent(index, index2, item) {
-                console.log('item: ', item);
-               return index + index2
+        const Tour = s.Tour;
+        const tour = new Tour([
+            {
+                el: '.button',
+                title: '这是一个按钮',
+                text: '这是一个按钮的提示'
+            }, 
+            {
+                el: '.button2',
+                title: '这是一个按钮2',
+                text: '这是一个按钮2的提示'
             }
-        })
+        ]);
+
+        tour.setConfig({
+            prevText: '上一页',
+            nextText: '下一页',
+            closeText: '关闭',
+        });
+
+        tour.setContentTemplate(`
+            <style>
+                .tour-content-title {
+                    font-size: 16px;
+                    font-weight: 500;
+                }
+
+                .tour-buttons {
+                    display: flex;
+                    justify-content: end;
+                    margin-top: 14px;
+                }
+
+                .tour-prev, .tour-next {
+                    opacity: 0.8;
+                    padding: 4px;
+                    min-width: 40px;
+                    text-align: center;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+
+                .tour-prev {
+                    background-color: #f0f0f0;
+                }
+
+                .tour-prev:hover, .tour-next:hover {
+                    opacity: 1;
+                }
+
+                .tour-next {
+                    margin-left: 6px;
+                    color: #fff;
+                    background-color: #007bff;
+                }
+            </style>
+
+            <div class="tour-content">
+                <p class="tour-content-title">
+                    <$title>
+                </p>
+                <p class="tour-content-text">
+                <$text>
+                </p>
+            </div>
+
+            <div class="tour-buttons">
+                <div class="tour-prev">上一页</div>
+                <div class="tour-next"><$next></div>
+            </div>
+        `);
+
+      const { createWebSocket, useWebSocketMessage, useSendMessage } = w;
+      const ws = createWebSocket('wss://lightsoft.life:3333', {
+        reconnect: true,
+        heartbeat: true,
+      } , () => {
+        console.log('连接成功');
+      });
+
+      useWebSocketMessage(ws, (message) => {
+            console.log('收到消息:', message);
+        });
+      
+      const sendMessage = () => {
+        useSendMessage(ws, {
+            type: 'json',
+            data: {
+                message: 'hello world',
+            }
+        });
+      }
+    
+     
+      
     </script>
 </body>
 </html>

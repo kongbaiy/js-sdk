@@ -1,4 +1,4 @@
-import { Tag } from '../types/index.interface';
+import { Tag } from '../types';
 
 const TAG_NAME_REGEX = /<\/?\s*([a-zA-Z][a-zA-Z0-9-]*)\b/;  // 获取开始或结束标签的名
 const SINGLE_TAG_REGEX = /<([^\s>]+)/;  // 单标签
@@ -230,15 +230,15 @@ function render(html: string, context = {}) {
         .replaceAll('<annotation>', '<!--')
         .replaceAll('</annotation>', '-->');
 
-    const renderedContent = new Function(
+    const rendered = new Function(
         `
-                let html = ''\n;
+                let html = '';\n
                 ${code}
                 return html;\n
             `
     );
 
-    return renderedContent.call(context);
+    return rendered.call(context);
 }
 
 function replaceElementWithPlaceholder(el: Element, placeholderText = 'PLACEHOLDER') {
@@ -253,19 +253,17 @@ function rebuild(selector: string, context: Record<string, any>) {
     if (!element) return
 
     const outerHTML = element.outerHTML;
-
     element.setAttribute('hidden', 'true');
 
     const id = useId();
     replaceElementWithPlaceholder(element, id);
 
     const newHtml = render(outerHTML, context);
-
     document.body.innerHTML = document.body.innerHTML.replace(`<!--${id}-->`, newHtml);
     element.setAttribute('hidden', 'false');
 }
 
-window.s = {
+export {
     rebuild,
     render
-};
+}

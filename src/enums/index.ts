@@ -1,12 +1,12 @@
 export enum RecordType {
-    AUDIO = 'audio',
-    VIDEO = 'video',
-    SCREEN = 'screen',
+  AUDIO = 'audio',
+  VIDEO = 'video',
+  SCREEN = 'screen',
 }
 
 export enum LOGIN_TYPE {
-    CODE = 'CODE',
-    ACCOUNT = 'ACCOUNT',
+  CODE = 'CODE',
+  ACCOUNT = 'ACCOUNT',
 }
 
 export enum LENGTH_LIMIT {
@@ -20,8 +20,8 @@ export enum LENGTH_LIMIT {
 
 // 节点基础类型
 export enum HAS_FEILD {
-    LABEL = 'label',
-    VALUE = 'value',
-    CHILDREN = 'children',
-    LEAF = 'leaf',
-  }
+  LABEL = 'label',
+  VALUE = 'value',
+  CHILDREN = 'children',
+  LEAF = 'leaf',
+}

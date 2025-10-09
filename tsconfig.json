@@ -1,16 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES5",
-    "module": "ESNext",           // Rollup 会处理模块打包
-    "lib": ["ES2021", "DOM"], 
-    "declaration": true,          // 生成 .d.ts
+    "module": "ESNext", // Rollup 会处理模块打包
+    "lib": ["ES2021", "DOM"],
+    "declaration": true, // 生成 .d.ts
     "declarationDir": "dist/types",
-    "emitDeclarationOnly": true,
+    // "emitDeclarationOnly": true,
+    "emitDeclarationOnly": false,
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "moduleResolution": "node"
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "jsx": "preserve"
   },
   "include": ["src"]
 }

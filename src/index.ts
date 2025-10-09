@@ -1,3 +1,5 @@
-export * from './utils/index'
-export * from './enums/index.enum'
-export * from './types/index.interface'
+export * from './utils'
+export * from './enums'
+export * from './types'
+export * from './reg-exp'
+

@@ -3,7 +3,7 @@ import { ref, Ref } from 'vue'
 
 interface CountDown {
     countdownText: Ref<string>
-    isDisabled: Ref<boolean>
+    disabled: Ref<boolean>
     send: () => void
 }
 /**
@@ -16,11 +16,11 @@ interface CountDown {
 export function useCountDown(num: number, text: string = '发送验证码'): CountDown {
     const countdownNum = ref(num)
     const countdownText = ref(text)
-    const isDisabled = ref(false)
+    const disabled = ref(false)
 
     const send = () => {
         countdownText.value = `${countdownNum.value}s`
-        isDisabled.value = true
+        disabled.value = true
 
         const timer = setInterval(() => {
             countdownNum.value--
@@ -30,9 +30,9 @@ export function useCountDown(num: number, text: string = '发送验证码'): Cou
                 clearInterval(timer)
                 countdownNum.value = num
                 countdownText.value = text
-                isDisabled.value = false
+                disabled.value = false
             }
         }, 1000)
     }
-    return { countdownText, isDisabled, send }
+    return { countdownText, disabled, send }
 }
