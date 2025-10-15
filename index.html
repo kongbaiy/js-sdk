@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,9 +13,10 @@
         }
     </style>
 </head>
+
 <body>
     <button style="margin-left: 900px;" class="button">按钮</button>
-    <br/>
+    <br />
     <button style="margin-top: 200px;" class="button2">按钮2</button>
     <button onclick="tour.start()">开启</button>
     <button onclick="sendMessage()">send message</button>
@@ -29,7 +31,7 @@
                 el: '.button',
                 title: '这是一个按钮',
                 text: '这是一个按钮的提示'
-            }, 
+            },
             {
                 el: '.button2',
                 title: '这是一个按钮2',
@@ -95,29 +97,28 @@
             </div>
         `);
 
-      const { createWebSocket, useWebSocketMessage, useSendMessage } = w;
-      const ws = createWebSocket('wss://lightsoft.life:3333', {
-        reconnect: true,
-        heartbeat: true,
-      } , () => {
-        console.log('连接成功');
-      });
+        const { createWebSocket, useOnMessage, useSendMessage } = w;
+        const ws = createWebSocket('wss://lightsoft.life:3333', {
+            reconnect: true,
+            heartbeat: true,
+        }, () => {
+            console.log('连接成功');
+        });
 
-      useWebSocketMessage(ws, (message) => {
+        useOnMessage(ws, (message) => {
             console.log('收到消息:', message);
         });
-      
-      const sendMessage = () => {
-        useSendMessage(ws, {
-            type: 'json',
-            data: {
-                message: 'hello world',
-            }
-        });
-      }
-    
-     
-      
+
+        const sendMessage = () => {
+            useSendMessage(ws, {
+                type: 'json',
+                data: {
+                    message: 'hello world',
+                }
+            });
+        }
+
     </script>
 </body>
+
 </html>

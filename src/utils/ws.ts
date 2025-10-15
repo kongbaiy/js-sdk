@@ -21,7 +21,7 @@ export function createWebSocket(url: string, config: WebSocketConfig | null, onO
   let open: Function | null = reconnectWebSocket()
 
   const init = (): WebSocket => {
-    const ws = new WebSocket(url)
+    const ws = new WebSocket(url);
 
     ws.onopen = () => {
       if (config?.heartbeat) heartbeat(ws, config);
@@ -44,7 +44,6 @@ export function createWebSocket(url: string, config: WebSocketConfig | null, onO
 
   return init()
 }
-
 
 export function getState(ws: WebSocket, type: WebSocketState): boolean {
   return ws.readyState === WebSocket[type]
@@ -105,7 +104,7 @@ export function useSendMessage(ws: WebSocket, data: any) {
     if (isOpen) ws.send(JSON.stringify(data))
 }
 
-export function useWebSocketMessage(ws: WebSocket, callback: Function) {
+export function useOnMessage(ws: WebSocket, callback: Function) {
   try {
     ws.onmessage = (e: MessageEvent<any>) => {
       const data = JSON.parse(e.data)
@@ -117,7 +116,7 @@ export function useWebSocketMessage(ws: WebSocket, callback: Function) {
   }
 }
 
-export function useWebSocketClose(ws: WebSocket, code?: number, message?: string) {
+export function useClose(ws: WebSocket, code?: number, message?: string) {
   code = code || 1000
   message = message || 'connection closed by client'
   ws.close(code, message)
