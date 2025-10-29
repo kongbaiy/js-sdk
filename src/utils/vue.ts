@@ -1,5 +1,6 @@
 
 import { ref, Ref } from 'vue'
+import { download } from './download'
 
 interface CountDown {
     countdownText: Ref<string>
@@ -35,4 +36,19 @@ export function useCountDown(num: number, text: string = '发送验证码'): Cou
         }, 1000)
     }
     return { countdownText, disabled, send }
+}
+
+export function useDownload(url: string, filename?: string, success?: (blob: Blob) => void) {
+    const loading = ref<boolean>(false)
+    const _filename = filename || 'download_' + new Date().getTime()
+    
+    loading.value = true
+    download(url, _filename, (blob) => {
+        loading.value = false
+        success?.(blob)
+    })
+
+    return {
+        loading
+    }
 }
