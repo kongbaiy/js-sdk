@@ -38,17 +38,20 @@ export function useCountDown(num: number, text: string = '发送验证码'): Cou
     return { countdownText, disabled, send }
 }
 
-export function useDownload(url: string, filename?: string, success?: (blob: Blob) => void) {
+export function useDownload() {
     const loading = ref<boolean>(false)
-    const _filename = filename || 'download_' + new Date().getTime()
+    const downloadFile = (url: string, filename?: string, success?: (blob: Blob) => void) => {
+        const _filename = filename || 'download_' + new Date().getTime()
     
-    loading.value = true
-    download(url, _filename, (blob) => {
-        loading.value = false
-        success?.(blob)
-    })
+        loading.value = true
+        download(url, _filename, (blob) => {
+            loading.value = false
+            success?.(blob)
+        })
+    }
 
     return {
-        loading
+        loading,
+        downloadFile
     }
 }
