@@ -20,10 +20,10 @@
     <button style="margin-top: 200px;" class="button2">按钮2</button>
     <button onclick="tour.start()">开启</button>
     <button onclick="sendMessage()">send message</button>
-
+    <p class="count"></p>
+    <button class="add-count" onclick="handleAddCount()">add count</button>
     <script src="./dist/index.umd.js"></script>
     <script src="./dist/ws.umd.js"></script>
-    <script src="./dist/rebuild.umd.js"></script>
     <script>
         const Tour = s.Tour;
         const tour = new Tour([
@@ -118,6 +118,19 @@
             });
         }
 
+        let num = 0
+        s.countUp(num, 100, (current) => {
+            num = current
+            document.querySelector('.count').innerHTML = num;
+        });
+
+        function handleAddCount() {
+             s.countUp(num, 160, (current) => {
+                num = current
+                document.querySelector('.count').innerHTML = num;
+            });
+
+        }
     </script>
 </body>
 
