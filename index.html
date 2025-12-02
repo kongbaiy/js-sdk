@@ -26,6 +26,7 @@
     <script src="./dist/ws.umd.js"></script>
     <script>
         const Tour = s.Tour;
+        console.log('s: ', s);
         const tour = new Tour([
             {
                 el: '.button',
@@ -129,7 +130,6 @@
                 num = current
                 document.querySelector('.count').innerHTML = num;
             });
-
         }
     </script>
 </body>
