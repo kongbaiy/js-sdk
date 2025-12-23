@@ -318,3 +318,18 @@ export function findTreeDataNodeName(
         }
     }
 }
+
+/**
+ * 
+ * 数组对象根据某个值去重
+ */
+export function uniqueByProperty<T>(arr: T[], prop: keyof T): T[] {
+  return arr.reduce((acc: T[], current: T) => {
+    const x = acc.find(item => item[prop] === current[prop]);
+    if (!x) {
+      return acc.concat([current]);
+    } else {
+      return acc;
+    }
+  }, []);
+};
