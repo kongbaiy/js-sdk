@@ -43,9 +43,9 @@ export function createWebSocket(
 		};
 
 		return ws;
-	};
+	}
 
-	return init();
+	return init()
 }
 
 export function getState(ws: WebSocket, type: WebSocketState): boolean {
@@ -75,7 +75,7 @@ function reconnectWebSocket() {
 			reconnectNumber! += 1;
 			callback();
 		}, reconnectTime);
-	};
+	}
 
 	return open;
 }
@@ -115,7 +115,7 @@ export function useOnMessage(ws: WebSocket, callback: Function) {
 			const data = JSON.parse(e.data);
 
 			callback(data, e);
-		};
+		}
 	} catch (error) {
 		console.error(error);
 	}
