@@ -22,6 +22,13 @@
     <button onclick="sendMessage()">send message</button>
     <p class="count"></p>
     <button class="add-count" onclick="handleAddCount()">add count</button>
+
+
+    <div style="margin: 60px 20px; padding: 20px; border: 1px solid;">
+        <input type="text">
+        <button onclick="handleSendSRMessage()">send</button>
+    </div>
+
     <script src="./dist/index.umd.js"></script>
     <script src="./dist/ws.umd.js"></script>
     <script>
@@ -130,6 +137,44 @@
                 num = current
                 document.querySelector('.count').innerHTML = num;
             });
+        }
+        
+        const sr = new s.StreamRequest('https://lightsoft.life:20023/v1/api/data/chat', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            parseResponse: true
+        })
+        const messages = [
+            {
+                role: 'system',
+                content: 'You are a helpful assistant.',
+            }, 
+            {
+                role: 'user',
+                content: '你好'
+            }
+        ]
+
+        sr.send({
+            data: messages
+        })
+
+        sr.onMessage((data) => {
+            console.log(data)
+        })
+      
+        sr.onError((error) => {
+            console.log('error:', error)
+        })
+
+        function handleSendSRMessage() {
+            messages.push({
+                role: 'user',
+                content: '1'
+            })
+            sr.send({
+                data: messages
+            })
         }
     </script>
 </body>
