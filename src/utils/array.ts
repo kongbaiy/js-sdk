@@ -5,9 +5,7 @@ export function hasRepeatArray(arr: any[], keys?: string[]) {
     for (const item of arr) {
         const val = keys?.map(key => item[key]).join(',') || item
 
-        if (map.has(val)) {
-            return [true, val.split(',')]
-        }
+        if (map.has(val)) return [true, val.split(',')]
         map.set(val, item)
     }
 
