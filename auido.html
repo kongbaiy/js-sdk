@@ -64,7 +64,7 @@
                 },
 
                 async handleGetAudioInfo() {
-                    const info = await this.audioRecorder.getAudioInfo()
+                    const info = await this.audioRecorder.getAudioInfo(this.blob)
                     console.log('info:', info)
                 },
 

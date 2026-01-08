@@ -37,7 +37,7 @@ export class AudioRecorder {
         sampleRate: 0,
         channels: 0,
         format: null,
-        bitDepth: 0,
+        bitDepth: 16,
     }
 
     private timer: NodeJS.Timeout | null = null;
@@ -156,7 +156,7 @@ export class AudioRecorder {
         })
     }
 
-    getAudioInfo() {
+    getAudioInfo(blob: Blob) {
         return new Promise(async (resolve, reject) => {
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -166,13 +166,13 @@ export class AudioRecorder {
 
                 const sampleRate = audioContext.sampleRate;
                 const channels = this.stream?.getAudioTracks()[0].getSettings().channelCount || 0;
-                // const { bitsPerSample } = await this.getWavBitDepth(this.getAudioBlob() as Blob);
+                const bitDepth = await this.getWavBitDepth(audioContext, blob);
 
                 resolve({
                     ...this.audioInfo,
                     sampleRate,
                     channels,
-                    // bitDepth: metadata.format.bitsPerSample,
+                    bitDepth
                 })
             } catch (error) {
                 reject(error)
@@ -181,99 +181,35 @@ export class AudioRecorder {
       
     }
 
-//    getWavBitDepth(blob: Blob): Promise<number> {
-//         return new Promise<number>((resolve, reject) => {
-//             const reader = new FileReader();
-
-//             reader.onload =  (event) => {
-//                 const arrayBuffer = event.target?.result as ArrayBuffer;
-
-//                 if (!arrayBuffer) {
-//                     reject();
-//                     throw new Error('未能读取 Blob 数据');
-//                 }
-
-//                 const data = new DataView(arrayBuffer);
-//                 console.log('data: ', data);
-//                 // 检查 "fmt " 区域，WAV文件的音频格式信息通常在此
-//                 const fmtChunkOffset = 20; // "fmt " chunk 在 WAV 文件头的位置
-//                 const bitDepth = data.getUint16(fmtChunkOffset + 14, true); // 16位表示小端存储
-
-//                 resolve(bitDepth)
-//             }
-//             reader.readAsArrayBuffer(blob);
-//         })
-//     }
-
-    getWavBitDepth(blob: Blob): Promise<number> {
-        return new Promise<any>((resolve, reject) => {
+   getWavBitDepth(audioContext:  AudioContext, blob: Blob): Promise<number> {
+        return new Promise<number>((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const arrayBuffer = event.target?.result as ArrayBuffer;
+
+            reader.onload =  async (event) => {
+                const arrayBuffer = await audioContext.decodeAudioData(reader.result as ArrayBuffer);
 
                 if (!arrayBuffer) {
-                    reject('未能读取 Blob 数据');
+                    reject({
+                        error: '未能读取 Blob 数据'
+                    });
                 }
 
-                const data = new DataView(arrayBuffer);
+                 // 分析音频数据估计位深度
+                const channelData = arrayBuffer.getChannelData(0);
+                let maxAmplitude = 0;
 
-                // 确保文件足够大
-                if (data.byteLength < 44) {
-                    console.error('文件太小，无法解析 WAV 头部');
-                    return;
+                for (let i = 0; i < channelData.length; i++) {
+                    maxAmplitude = Math.max(maxAmplitude, Math.abs(channelData[i]));
                 }
 
-                // 检查 "RIFF" 标志
-                const riff = String.fromCharCode(data.getUint8(0), data.getUint8(1), data.getUint8(2), data.getUint8(3));
-                if (riff !== 'RIFF') {
-                    console.error('无效的 WAV 文件');
-                    return;
-                }
-
-                // 获取 WAVE 标志
-                const wave = String.fromCharCode(data.getUint8(8), data.getUint8(9), data.getUint8(10), data.getUint8(11));
-                if (wave !== 'WAVE') {
-                    console.error('无效的 WAV 文件');
-                    return;
-                }
-
-                // 获取 fmt 标志
-                const fmt = String.fromCharCode(data.getUint8(12), data.getUint8(13), data.getUint8(14), data.getUint8(15));
-                if (fmt !== 'fmt ') {
-                    console.error('无效的 fmt 区块');
-                    return;
-                }
-
-                // 获取音频格式、声道数、采样率等
-                const format = data.getUint16(20, true);  // 音频格式（1: PCM）
-                const numChannels = data.getUint16(22, true);  // 声道数
-                const sampleRate = data.getUint32(24, true);  // 采样率
-                const byteRate = data.getUint32(28, true);  // 字节率
-                const blockAlign = data.getUint16(32, true);  // 数据块对齐大小
-                const bitsPerSample = data.getUint16(34, true);  // 位深度
-
-                console.log('音频格式:', format === 1 ? 'PCM' : '其他格式');
-                console.log('声道数:', numChannels);
-                console.log('采样率:', sampleRate);
-                console.log('字节率:', byteRate);
-                console.log('数据块对齐大小:', blockAlign);
-                console.log('位深度:', bitsPerSample);  // 位深度在这里
-
-                resolve({
-                    format,
-                    numChannels,
-                    sampleRate,
-                    byteRate,
-                    blockAlign,
-                    bitsPerSample,
-                })
-
-                // 如果格式是 PCM 格式，则位深度应该在 16 或 24 位之间
-                } catch (error) {
-                    reject(error)
-                }
-            } 
+                // 判断是整数格式还是浮点格式
+                const isFloat = channelData.some((value: number) =>
+                    Math.abs(value) > 1.0 ||
+                    value.toString().includes('.')
+                )
+               
+                resolve(isFloat ? 32 : 16);
+            }
             reader.readAsArrayBuffer(blob);
         })
     }
