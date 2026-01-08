@@ -4,6 +4,7 @@ declare global {
   interface Window {
     s: any;
     ActiveXObject: any
+    webkitAudioContext: any
   }
 
   var ActiveXObject: {
