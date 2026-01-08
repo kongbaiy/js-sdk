@@ -155,8 +155,18 @@
             }
         ]
 
+           sr.onBefore((params) => {
+            console.log('params:', params)
+        })
+
+
         sr.send({
             data: messages
+        })
+
+     
+        sr.onBeforeResponse((data, setResponse) => {
+            setResponse(data)
         })
 
         sr.onMessage((data) => {

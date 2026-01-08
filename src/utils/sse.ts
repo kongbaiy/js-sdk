@@ -9,9 +9,11 @@ interface StreamRequestParams {
 export class StreamRequest {
     private url: string
     private options: StreamRequestParams
+    private beforeCallback?: (...args: any) => void
     private messageCallback?: <T>(data: T) => void
     private errorCallback?: <T>(data: T) => void
     private parseResponse?: boolean
+    private beforeResponse?: (data: any, setResponse: <T>(data: T) => void) => void
 
     constructor(url: string, config?: StreamRequestConfig) {
         const { parseResponse, ...options } = config as StreamRequestConfig
@@ -21,10 +23,16 @@ export class StreamRequest {
         this.parseResponse = parseResponse
     }
 
-    async send(params: StreamRequestParams) {
+    private onBefore(callback: (...args: any) => void) {
+        this.beforeCallback = callback
+    }
+
+    private async send(params: StreamRequestParams) {
         const { url, options, parseResponse } = this
 
         try {
+            if (typeof this.beforeCallback === 'function') this.beforeCallback(params)
+            
             const res = await window.fetch(url, {
                 ...options,
                 body: JSON.stringify(params),
@@ -41,22 +49,30 @@ export class StreamRequest {
                 const data = new TextDecoder().decode(value)
                 const newData = data.split('\n')
 
-                newData.forEach((message: string) => {
-                    if (message.trim()) {
-                        this.messageCallback?.(parseResponse ? JSON.parse(message || '{}') : message)
-                    }
-                })
+                if (typeof this.beforeResponse === 'function') {
+                    this.beforeResponse(data, this.messageCallback!)
+                } else {
+                    newData.forEach((message: string) => {
+                        if (message.trim()) {
+                            this.messageCallback?.(parseResponse ? JSON.parse(message || '{}') : message)
+                        }
+                    })
+                }
             }
         } catch (error) {
             this.errorCallback?.(error)
         }
     }
 
-    onMessage(callback: <T>(data: T) => void) {
+    onBeforeResponse(beforeResponse: () => void) {
+        this.beforeResponse = beforeResponse
+    }
+
+    private onMessage(callback: <T>(data: T) => void) {
         this.messageCallback = callback
     }
 
-    onError(callback: <T>(data: T) => void) {
+    private onError(callback: <T>(data: T) => void) {
         this.errorCallback = callback
     }
 }
