@@ -10,6 +10,8 @@
         <div>
             <button @click="handleStart">开始录制 {{timerCount}} </button>
             <button @click="handleStop">停止录制</button>
+            <button @click="handleGetAudioInfo">获取音频信息</button>
+            <button @click="handleDownload">下载音频</button>
         </div>
     </div>
     
@@ -24,6 +26,7 @@
                 return {
                     timerCount: 0,
                     audioRecorder: null,
+                    blob: null,
                 }
             },
 
@@ -41,8 +44,13 @@
                     this.timerCount = count
                 })
 
+                this.audioRecorder.onTimerEnd((error) => {
+                    this.timerCount = 0
+                })
+
                 this.audioRecorder.onStop(async (chunks) => {
                     const blob = this.audioRecorder.getAudioBlob()
+                    this.blob = blob
                     console.log('blob:', await this.audioRecorder.getAudioBase64(blob))
                 })
             },
@@ -54,6 +62,15 @@
                 handleStop() {
                     this.audioRecorder.stop()
                 },
+
+                async handleGetAudioInfo() {
+                    const info = await this.audioRecorder.getAudioInfo()
+                    console.log('info:', info)
+                },
+
+                handleDownload() {
+                    this.audioRecorder.download(this.blob)
+                }
             }
         })
     </script>
