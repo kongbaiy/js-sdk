@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频录制</title>
+</head>
+<body>
+    <div id="app">
+        <div>
+            <button @click="handleStart">开始录制 {{timerCount}} </button>
+            <button @click="handleStop">停止录制</button>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="./dist/index.umd.js"></script>
+    <script>
+        const { AudioRecorder } = s
+        
+        const app = new Vue({
+            el: '#app',
+            data() {
+                return {
+                    timerCount: 0,
+                    audioRecorder: null,
+                }
+            },
+
+            mounted() {
+                this.audioRecorder = new AudioRecorder({
+                    media: {
+                        audio: true,
+                        video: false,
+                    },
+                    maxTime: 6,
+                })
+
+                this.audioRecorder.onTimer((count) => {
+                    console.log('count: ', count);
+                    this.timerCount = count
+                })
+
+                this.audioRecorder.onStop(async (chunks) => {
+                    const blob = this.audioRecorder.getAudioBlob()
+                    console.log('blob:', await this.audioRecorder.getAudioBase64(blob))
+                })
+            },
+
+            methods: {
+                handleStart() {
+                    this.audioRecorder.start()
+                },
+                handleStop() {
+                    this.audioRecorder.stop()
+                },
+            }
+        })
+    </script>
+</body>
+</html>
