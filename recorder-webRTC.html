@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC 屏幕录制方案</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .section {
+            margin: 25px 0;
+            padding: 20px;
+            border: 1px solid #eaeaea;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-success {
+            background: #059669;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+            margin: 10px 0;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .recording {
+            background: #fee2e2;
+            color: #dc2626;
+            display: block;
+        }
+
+        .preview {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .preview {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎥 WebRTC 屏幕录制方案</h1>
+
+        <div class="section">
+            <h2>1. 选择录制源</h2>
+            <div class="controls">
+                <button class="btn-primary" onclick="startRecording('screen')">🖥️ 录制整个屏幕</button>
+                <button class="btn-primary" onclick="startRecording('window')">📁 录制应用窗口</button>
+                <button class="btn-primary" onclick="startRecording('tab')">🌐 录制浏览器标签页</button>
+                <button class="btn-danger" onclick="stopRecording()" id="stopBtn" disabled>⏹️ 停止录制</button>
+            </div>
+
+            <div id="status" class="status recording">
+                <span id="statusText">等待开始录制...</span>
+                <span id="timer" style="float:right;">00:00</span>
+            </div>
+
+            <div class="info">
+                <p><strong>⚠️ 注意：</strong>浏览器将弹出选择窗口，请选择要录制的屏幕/窗口。某些受保护内容（如Netflix）可能无法录制。</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>2. 实时预览与录制</h2>
+            <div class="preview">
+                <div>
+                    <h3>🔴 实时预览</h3>
+                    <video id="previewVideo" autoplay muted playsinline></video>
+                    <p>此预览仅用于确认录制内容</p>
+                </div>
+                <div>
+                    <h3>📼 录制回放</h3>
+                    <video id="playbackVideo" controls></video>
+                    <div style="margin-top: 10px;">
+                        <button class="btn-success" onclick="downloadRecording()" id="downloadBtn" disabled>💾
+                            下载录制文件</button>
+                        <button onclick="playRecording()" id="playBtn" disabled>▶️ 播放录制</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>3. 录制设置</h2>
+            <div class="settings">
+                <div style="margin: 10px 0;">
+                    <label>
+                        <input type="checkbox" id="recordAudio" checked>
+                        录制系统音频（需要Chrome 74+）
+                    </label>
+                </div>
+                <div style="margin: 10px 0;">
+                    <label>
+                        <input type="checkbox" id="showCursor" checked>
+                        显示鼠标指针
+                    </label>
+                </div>
+                <div style="margin: 10px 0;">
+                    <label>视频质量：
+                        <select id="videoQuality">
+                            <option value="high">高质量（文件较大）</option>
+                            <option value="medium" selected>中等质量</option>
+                            <option value="low">低质量（节省空间）</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+ * WebRTC 屏幕录制器
+ * 支持：屏幕/窗口/标签页录制 + 系统音频
+ */
+        class WebRTCRecorder {
+            constructor(options = {}) {
+                this.config = {
+                    mimeType: 'video/webm;codecs=vp9,opus',
+                    audioBitsPerSecond: 128000,
+                    videoBitsPerSecond: 2500000,
+                    frameRate: 30,
+                    ...options
+                };
+
+                // 状态管理
+                this.stream = null;
+                this.mediaRecorder = null;
+                this.recordedChunks = [];
+                this.isRecording = false;
+                this.startTime = null;
+                this.timerInterval = null;
+
+                // 视频质量映射
+                this.qualityMap = {
+                    low: { width: 1280, height: 720, bitrate: 1000000 },
+                    medium: { width: 1920, height: 1080, bitrate: 2500000 },
+                    high: { width: 2560, height: 1440, bitrate: 5000000 }
+                };
+
+                console.log('🎥 WebRTC录屏器初始化完成');
+            }
+
+            /**
+             * 开始屏幕录制
+             * @param {string} sourceType - 'screen' | 'window' | 'tab'
+             */
+            async startRecording(sourceType = 'screen') {
+                try {
+                    // 1. 请求屏幕共享权限
+                    this.updateStatus('🔄 请求屏幕共享权限...');
+
+                    const constraints = this.getConstraints(sourceType);
+                    this.stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+
+                    // 2. 设置停止录制监听（用户点击浏览器停止按钮）
+                    this.stream.getVideoTracks()[0].onended = () => {
+                        console.log('用户通过浏览器停止了共享');
+                        this.stopRecording();
+                    };
+
+                    // 3. 显示预览
+                    this.showPreview(this.stream);
+
+                    // 4. 开始录制
+                    this.startMediaRecorder();
+
+                    // 5. 启动计时器
+                    this.startTimer();
+
+                    this.updateStatus('🔴 正在录制中...', true);
+                    this.setControlStates(true);
+
+                    console.log('✅ 录制开始');
+                    return true;
+
+                } catch (error) {
+                    this.handleError(error);
+                    return false;
+                }
+            }
+
+            /**
+             * 获取媒体约束
+             */
+            getConstraints(sourceType) {
+                const quality = this.qualityMap[
+                    document.getElementById('videoQuality').value || 'medium'
+                ];
+
+                const constraints = {
+                    video: {
+                        cursor: document.getElementById('showCursor').checked ? 'always' : 'never',
+                        frameRate: { ideal: this.config.frameRate },
+                        width: { ideal: quality.width },
+                        height: { ideal: quality.height }
+                    },
+                    audio: document.getElementById('recordAudio').checked
+                };
+
+                // 指定来源类型（非所有浏览器支持）
+                if (sourceType && constraints.video) {
+                    constraints.video.displaySurface = sourceType;
+                }
+
+                return constraints;
+            }
+
+            /**
+             * 启动 MediaRecorder
+             */
+            startMediaRecorder() {
+                // 选择最佳的 MIME 类型
+                const mimeType = this.getSupportedMimeType();
+
+                const options = {
+                    mimeType: mimeType,
+                    audioBitsPerSecond: this.config.audioBitsPerSecond,
+                    videoBitsPerSecond: this.config.videoBitsPerSecond
+                };
+
+                // 创建 MediaRecorder 实例
+                this.mediaRecorder = new MediaRecorder(this.stream, options);
+                this.recordedChunks = [];
+
+                // 数据可用时触发
+                this.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        this.recordedChunks.push(event.data);
+                        console.log(`📦 收到数据块: ${event.data.size} bytes`);
+                    }
+                };
+
+                // 录制停止时触发
+                this.mediaRecorder.onstop = () => {
+                    this.onRecordingStopped();
+                };
+
+                // 开始录制，每1秒收集一次数据
+                this.mediaRecorder.start(1000);
+                this.isRecording = true;
+            }
+
+            /**
+             * 获取浏览器支持的 MIME 类型
+             */
+            getSupportedMimeType() {
+                const types = [
+                    'video/webm;codecs=vp9,opus',
+                    'video/webm;codecs=vp8,opus',
+                    'video/webm;codecs=h264,opus',
+                    'video/mp4;codecs=h264,aac',
+                    'video/webm',
+                    'video/mp4'
+                ];
+
+                for (const type of types) {
+                    if (MediaRecorder.isTypeSupported(type)) {
+                        console.log(`✅ 支持 MIME 类型: ${type}`);
+                        return type;
+                    }
+                }
+
+                console.warn('⚠️ 无支持的 MIME 类型，使用默认');
+                return '';
+            }
+
+            /**
+             * 停止录制
+             */
+            async stopRecording() {
+                if (!this.isRecording || !this.mediaRecorder) {
+                    return null;
+                }
+
+                this.updateStatus('⏳ 正在停止录制并处理数据...');
+
+                // 停止 MediaRecorder
+                this.mediaRecorder.stop();
+
+                // 停止所有轨道
+                this.stream.getTracks().forEach(track => track.stop());
+
+                // 清除计时器
+                this.stopTimer();
+
+                this.isRecording = false;
+                this.setControlStates(false);
+
+                // 等待 onstop 事件完成
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                return this.getRecordingData();
+            }
+
+            /**
+             * 录制停止后的处理
+             */
+            onRecordingStopped() {
+                console.log('⏹️ MediaRecorder 已停止');
+
+                if (this.recordedChunks.length === 0) {
+                    console.warn('⚠️ 没有录制到任何数据');
+                    this.updateStatus('❌ 录制失败：没有数据');
+                    return;
+                }
+
+                const recordingData = this.getRecordingData();
+
+                // 显示回放
+                this.showPlayback(recordingData.blob);
+
+                // 启用下载按钮
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('playBtn').disabled = false;
+
+                const duration = (Date.now() - this.startTime) / 1000;
+                this.updateStatus(`✅ 录制完成！时长: ${duration.toFixed(1)}秒，大小: ${(recordingData.size / 1024 / 1024).toFixed(2)}MB`);
+            }
+
+            /**
+             * 获取录制数据
+             */
+            getRecordingData() {
+                const blob = new Blob(this.recordedChunks, {
+                    type: this.mediaRecorder.mimeType
+                });
+
+                return {
+                    blob: blob,
+                    url: URL.createObjectURL(blob),
+                    size: blob.size,
+                    duration: Date.now() - this.startTime,
+                    mimeType: this.mediaRecorder.mimeType,
+                    chunks: this.recordedChunks.length
+                };
+            }
+
+            /**
+             * 显示实时预览
+             */
+            showPreview(stream) {
+                const previewVideo = document.getElementById('previewVideo');
+                previewVideo.srcObject = stream;
+                previewVideo.muted = true;
+
+                previewVideo.onloadedmetadata = () => {
+                    previewVideo.play().catch(e => console.warn('预览播放失败:', e));
+                };
+            }
+
+            /**
+             * 显示录制回放
+             */
+            showPlayback(blob) {
+                const playbackVideo = document.getElementById('playbackVideo');
+                const url = URL.createObjectURL(blob);
+
+                playbackVideo.src = url;
+                playbackVideo.controls = true;
+
+                playbackVideo.onloadeddata = () => {
+                    console.log('🎬 回放视频已加载');
+                    playbackVideo.play().catch(e => console.warn('回放失败:', e));
+                };
+            }
+
+            /**
+             * 下载录制文件
+             */
+            downloadRecording() {
+                const recordingData = this.getRecordingData();
+                if (!recordingData.blob || recordingData.size === 0) {
+                    alert('没有可下载的录制文件');
+                    return;
+                }
+
+                // 根据 MIME 类型确定扩展名
+                const extension = recordingData.mimeType.includes('mp4') ? 'mp4' : 'webm';
+                const filename = `recording-${new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')}.${extension}`;
+
+                // 创建下载链接
+                const a = document.createElement('a');
+                a.href = recordingData.url;
+                a.download = filename;
+                a.style.display = 'none';
+
+                document.body.appendChild(a);
+                a.click();
+
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(recordingData.url);
+                }, 100);
+
+                console.log(`💾 文件已下载: ${filename}`);
+            }
+
+            /**
+             * 计时器相关
+             */
+            startTimer() {
+                this.startTime = Date.now();
+                this.timerInterval = setInterval(() => {
+                    const elapsed = Date.now() - this.startTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    document.getElementById('timer').textContent =
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+
+            /**
+             * 更新状态显示
+             */
+            updateStatus(message, isRecording = false) {
+                const statusEl = document.getElementById('status');
+                const statusText = document.getElementById('statusText');
+
+                statusText.textContent = message;
+
+                if (isRecording) {
+                    statusEl.style.display = 'block';
+                    statusEl.className = 'status recording';
+                } else if (message) {
+                    statusEl.style.display = 'block';
+                    statusEl.className = 'status';
+                } else {
+                    statusEl.style.display = 'none';
+                }
+            }
+
+            /**
+             * 设置控件状态
+             */
+            setControlStates(isRecording) {
+                document.getElementById('stopBtn').disabled = !isRecording;
+            }
+
+            /**
+             * 错误处理
+             */
+            handleError(error) {
+                console.error('录制错误:', error);
+
+                let message = '录制失败: ';
+
+                switch (error.name) {
+                    case 'NotAllowedError':
+                        message += '用户拒绝了权限请求';
+                        break;
+                    case 'NotFoundError':
+                        message += '未找到可录制的屏幕/窗口';
+                        break;
+                    case 'NotReadableError':
+                        message += '无法访问屏幕/窗口，可能被其他应用占用';
+                        break;
+                    case 'OverconstrainedError':
+                        message += '无法满足录制要求，请降低质量设置';
+                        break;
+                    default:
+                        message += error.message || '未知错误';
+                }
+
+                this.updateStatus(`❌ ${message}`);
+                alert(message);
+            }
+
+            /**
+             * 检查浏览器支持情况
+             */
+            static isSupported() {
+                return !!(navigator.mediaDevices &&
+                    navigator.mediaDevices.getDisplayMedia &&
+                    window.MediaRecorder);
+            }
+
+            /**
+             * 获取浏览器支持详情
+             */
+            static getSupportDetails() {
+                const details = {
+                    getDisplayMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia),
+                    MediaRecorder: !!window.MediaRecorder,
+                    mimeTypes: []
+                };
+
+                // 测试支持的 MIME 类型
+                const testTypes = [
+                    'video/webm;codecs=vp9,opus',
+                    'video/webm;codecs=vp8,opus',
+                    'video/webm;codecs=h264,opus',
+                    'video/mp4;codecs=h264,aac'
+                ];
+
+                details.mimeTypes = testTypes.filter(type =>
+                    MediaRecorder.isTypeSupported(type)
+                );
+
+                return details;
+            }
+        }
+
+        // 全局录屏器实例
+let recorder = null;
+
+// 页面加载完成
+window.addEventListener('DOMContentLoaded', () => {
+    // 检查浏览器支持
+    if (!WebRTCRecorder.isSupported()) {
+        document.getElementById('statusText').textContent = 
+            '❌ 您的浏览器不支持 WebRTC 屏幕录制';
+        document.querySelectorAll('button').forEach(btn => {
+            btn.disabled = true;
+        });
+        return;
+    }
+    
+    // 显示支持信息
+    const supportDetails = WebRTCRecorder.getSupportDetails();
+    console.log('浏览器支持详情:', supportDetails);
+    
+    // 初始化录屏器
+    recorder = new WebRTCRecorder();
+    
+    console.log('✅ 页面初始化完成');
+});
+
+/**
+ * 开始录制
+ */
+async function startRecording(sourceType) {
+    if (!recorder) return;
+    
+    // 重置状态
+    document.getElementById('playbackVideo').src = '';
+    document.getElementById('downloadBtn').disabled = true;
+    document.getElementById('playBtn').disabled = true;
+    
+    // 开始录制
+    const success = await recorder.startRecording(sourceType);
+    
+    if (success) {
+        console.log(`开始录制: ${sourceType}`);
+    }
+}
+
+/**
+ * 停止录制
+ */
+async function stopRecording() {
+    if (!recorder) return;
+    
+    await recorder.stopRecording();
+}
+
+/**
+ * 播放录制内容
+ */
+function playRecording() {
+    const playbackVideo = document.getElementById('playbackVideo');
+    if (playbackVideo.src) {
+        playbackVideo.currentTime = 0;
+        playbackVideo.play().catch(e => console.warn('播放失败:', e));
+    }
+}
+
+/**
+ * 下载录制文件
+ */
+function downloadRecording() {
+    if (!recorder) return;
+    
+    recorder.downloadRecording();
+}
+
+/**
+ * 录制整个屏幕
+ */
+function recordFullScreen() {
+    startRecording('screen');
+}
+
+/**
+ * 录制应用窗口
+ */
+function recordApplicationWindow() {
+    startRecording('window');
+}
+
+/**
+ * 录制浏览器标签页
+ */
+function recordBrowserTab() {
+    startRecording('tab');
+}
+
+// 绑定全局函数
+window.startRecording = startRecording;
+window.stopRecording = stopRecording;
+window.playRecording = playRecording;
+window.downloadRecording = downloadRecording;
+window.recordFullScreen = recordFullScreen;
+window.recordApplicationWindow = recordApplicationWindow;
+window.recordBrowserTab = recordBrowserTab;
+    </script>
+</body>
+
+</html>

@@ -166,27 +166,28 @@ export class AudioRecorder {
 
                 const sampleRate = audioContext.sampleRate;
                 const channels = this.stream?.getAudioTracks()[0].getSettings().channelCount || 0;
-                const bitDepth = await this.getWavBitDepth(audioContext, blob);
+                const bitDepth = await this.getBitDepth(audioContext, blob);
+                const format = this.getExtension(this.mediaRecorder?.mimeType as string)
 
                 resolve({
                     ...this.audioInfo,
                     sampleRate,
                     channels,
-                    bitDepth
+                    bitDepth,
+                    format
                 })
             } catch (error) {
                 reject(error)
             }
         })
-      
     }
 
-   getWavBitDepth(audioContext:  AudioContext, blob: Blob): Promise<number> {
+   getBitDepth(audioContext:  AudioContext, blob: Blob): Promise<number> {
         return new Promise<number>((resolve, reject) => {
             const reader = new FileReader();
 
             reader.onload =  async (event) => {
-                const arrayBuffer = await audioContext.decodeAudioData(reader.result as ArrayBuffer);
+                const arrayBuffer = await audioContext.decodeAudioData(event.target?.result as ArrayBuffer);
 
                 if (!arrayBuffer) {
                     reject({

@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-start { background: #48bb78; color: white; }
+        .btn-stop { background: #f56565; color: white; }
+        .btn-replay { background: #667eea; color: white; }
+        .btn-export { background: #ed8936; color: white; }
+        
+        button:hover { transform: translateY(-2px); }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .recording { background: #fed7d7; color: #c53030; }
+        .recording.show { display: block; }
+        
+        .demo-area {
+            padding: 30px;
+            background: #f7fafc;
+            border-radius: 8px;
+            min-height: 300px;
+        }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-top: 5px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: #ebf8ff;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .replay-container {
+            width: 100%;
+            height: 500px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        .interactions {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .interaction-btn {
+            padding: 8px 16px;
+            background: #edf2f7;
+            color: #4a5568;
+        }
+        
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎥 原生JS无感录屏演示</h1>
+        
+        <div class="section">
+            <h2>📝 演示区域</h2>
+            <div class="demo-area" id="demoArea">
+                <p>在此区域进行任意操作，所有交互都会被录制：</p>
+                
+                <div class="form-group">
+                    <label>姓名：</label>
+                    <input type="text" id="nameInput" placeholder="请输入姓名">
+                </div>
+                
+                <div class="form-group">
+                    <label>邮箱：</label>
+                    <input type="email" id="emailInput" placeholder="请输入邮箱">
+                </div>
+                
+                <div class="form-group">
+                    <label>选择城市：</label>
+                    <select id="citySelect">
+                        <option value="">请选择</option>
+                        <option value="beijing">北京</option>
+                        <option value="shanghai">上海</option>
+                        <option value="guangzhou">广州</option>
+                        <option value="shenzhen">深圳</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>备注：</label>
+                    <textarea id="notes" rows="3" placeholder="请输入备注信息..."></textarea>
+                </div>
+                
+                <div class="interactions">
+                    <button class="interaction-btn" onclick="addDemoItem()">➕ 添加项目</button>
+                    <button class="interaction-btn" onclick="changeDemoColor()">🎨 随机颜色</button>
+                    <button class="interaction-btn" onclick="clearDemoItems()">🗑️ 清空列表</button>
+                </div>
+                
+                <div id="itemList"></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🎛️ 录制控制</h2>
+            <div class="controls">
+                <button class="btn-start" onclick="startNativeRecording()">开始无感录制</button>
+                <button class="btn-stop" onclick="stopNativeRecording()">停止录制</button>
+                <button class="btn-replay" onclick="replayRecording()" id="replayBtn" disabled>回放录制</button>
+                <button class="btn-export" onclick="exportRecording()">导出数据</button>
+            </div>
+            
+            <div id="recordingStatus" class="status recording">
+                🔴 正在录制中... 请在上方区域进行操作
+            </div>
+            
+            <div class="stats" id="statsContainer">
+                <!-- 统计信息将通过JS动态生成 -->
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📺 回放展示</h2>
+            <div id="replayContainer" class="replay-container"></div>
+        </div>
+    </div>
+
+
+    <script>
+        /**
+ * 原生JS无感录屏器
+ * 使用MutationObserver + 事件监听实现
+ */
+        class NativeScreenRecorder {
+            constructor(options = {}) {
+                // 配置参数
+                this.config = {
+                    maskInputs: true,           // 屏蔽输入内容
+                    maskText: false,            // 屏蔽文本内容
+                    recordScroll: true,         // 记录滚动
+                    recordClicks: true,         // 记录点击
+                    recordKeyPress: false,      // 记录按键（谨慎使用）
+                    recordMouseMove: false,     // 记录鼠标移动（数据量大）
+                    sampling: {
+                        mouseMove: 100,         // 鼠标移动采样率(ms)
+                        scroll: 150             // 滚动采样率(ms)
+                    },
+                    maxEvents: 10000,           // 最大事件数
+                    ...options
+                };
+
+                // 状态管理
+                this.isRecording = false;
+                this.events = [];
+                this.startTime = null;
+                this.observer = null;
+                this.eventListeners = [];
+
+                // 性能优化
+                this.lastMouseMove = 0;
+                this.lastScrollTime = 0;
+                this.snapshotCache = new Map();
+
+                console.log('🎥 原生录屏器初始化完成');
+            }
+
+            /**
+             * 开始录制
+             */
+            start() {
+                if (this.isRecording) return;
+
+                this.isRecording = true;
+                this.startTime = Date.now();
+                this.events = [];
+
+                // 1. 记录初始全量快照
+                this.captureInitialSnapshot();
+
+                // 2. 启动DOM变化监听
+                this.startDOMMutationObserver();
+
+                // 3. 启动事件监听
+                this.startEventListeners();
+
+                console.log('🔴 原生录屏开始');
+                return true;
+            }
+
+            /**
+             * 捕获初始页面快照
+             */
+            captureInitialSnapshot() {
+                const snapshot = {
+                    type: 'full-snapshot',
+                    timestamp: 0,
+                    data: {
+                        html: this.serializeDOM(document.documentElement),
+                        url: window.location.href,
+                        viewport: {
+                            width: window.innerWidth,
+                            height: window.innerHeight
+                        },
+                        timestamp: Date.now()
+                    }
+                };
+
+                this.events.push(snapshot);
+                console.log('📸 初始快照已捕获');
+            }
+
+            /**
+             * 序列化DOM节点
+             */
+            serializeDOM(node, depth = 0) {
+                // 深度限制，防止序列化过深
+                if (depth > 20) return '[深度限制]';
+
+                // 处理不同节点类型
+                switch (node.nodeType) {
+                    case Node.ELEMENT_NODE:
+                        return this.serializeElement(node, depth);
+
+                    case Node.TEXT_NODE:
+                        return this.serializeTextNode(node);
+
+                    case Node.COMMENT_NODE:
+                        return `<!--${node.textContent}-->`;
+
+                    default:
+                        return '';
+                }
+            }
+
+            /**
+             * 序列化元素节点
+             */
+            serializeElement(element, depth) {
+                // 构建标签
+                const tagName = element.tagName.toLowerCase();
+                let serialized = `<${tagName}`;
+
+                // 序列化属性（排除敏感属性）
+                for (const attr of element.attributes) {
+                    if (this.shouldSerializeAttribute(attr.name)) {
+                        let value = attr.value;
+
+                        // 处理输入框内容屏蔽
+                        if (this.config.maskInputs &&
+                            (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA')) {
+                            if (attr.name === 'value') {
+                                value = this.maskValue(value);
+                            }
+                        }
+
+                        serialized += ` ${attr.name}="${this.escapeHtml(value)}"`;
+                    }
+                }
+
+                serialized += '>';
+
+                // 序列化子节点
+                if (element.childNodes.length > 0) {
+                    for (const child of element.childNodes) {
+                        serialized += this.serializeDOM(child, depth + 1);
+                    }
+                }
+
+                // 闭合标签（自闭合标签不需要）
+                if (!this.isVoidElement(tagName)) {
+                    serialized += `</${tagName}>`;
+                }
+
+                return serialized;
+            }
+
+            /**
+             * 序列化文本节点
+             */
+            serializeTextNode(textNode) {
+                let text = textNode.textContent || '';
+
+                // 文本内容屏蔽
+                if (this.config.maskText) {
+                    text = this.maskText(text);
+                }
+
+                return this.escapeHtml(text);
+            }
+
+            /**
+             * 启动DOM变化观察者
+             */
+            startDOMMutationObserver() {
+                this.observer = new MutationObserver((mutations) => {
+                    if (!this.isRecording) return;
+
+                    const timestamp = Date.now() - this.startTime;
+
+                    mutations.forEach((mutation) => {
+                        // 过滤不必要的变动
+                        if (this.shouldIgnoreMutation(mutation)) return;
+
+                        const event = {
+                            type: 'mutation',
+                            timestamp,
+                            data: this.serializeMutation(mutation)
+                        };
+
+                        this.addEvent(event);
+                    });
+                });
+
+                // 观察整个文档的变化
+                this.observer.observe(document.documentElement, {
+                    childList: true,      // 子节点的添加/删除
+                    attributes: true,     // 属性的修改
+                    characterData: true,  // 文本内容变化
+                    subtree: true,        // 所有后代节点
+                    attributeOldValue: true,
+                    characterDataOldValue: true
+                });
+            }
+
+            /**
+             * 启动事件监听
+             */
+            startEventListeners() {
+                // 点击事件
+                if (this.config.recordClicks) {
+                    const clickHandler = (e) => {
+                        if (!this.isRecording) return;
+
+                        const target = e.target;
+                        const event = {
+                            type: 'click',
+                            timestamp: Date.now() - this.startTime,
+                            data: {
+                                x: e.clientX,
+                                y: e.clientY,
+                                target: this.getElementSelector(target),
+                                tagName: target.tagName,
+                                id: target.id,
+                                className: target.className
+                            }
+                        };
+
+                        this.addEvent(event);
+                    };
+
+                    document.addEventListener('click', clickHandler, true);
+                    this.eventListeners.push({ type: 'click', handler: clickHandler });
+                }
+
+                // 滚动事件（节流）
+                if (this.config.recordScroll) {
+                    const scrollHandler = () => {
+                        if (!this.isRecording) return;
+
+                        const now = Date.now();
+                        if (now - this.lastScrollTime < this.config.sampling.scroll) return;
+
+                        this.lastScrollTime = now;
+
+                        const event = {
+                            type: 'scroll',
+                            timestamp: now - this.startTime,
+                            data: {
+                                scrollX: window.pageXOffset,
+                                scrollY: window.pageYOffset,
+                                viewport: {
+                                    width: window.innerWidth,
+                                    height: window.innerHeight
+                                }
+                            }
+                        };
+
+                        this.addEvent(event);
+                    };
+
+                    window.addEventListener('scroll', scrollHandler, { passive: true });
+                    this.eventListeners.push({ type: 'scroll', handler: scrollHandler });
+                }
+
+                // 鼠标移动（高采样率下使用）
+                if (this.config.recordMouseMove) {
+                    const mouseMoveHandler = (e) => {
+                        if (!this.isRecording) return;
+
+                        const now = Date.now();
+                        if (now - this.lastMouseMove < this.config.sampling.mouseMove) return;
+
+                        this.lastMouseMove = now;
+
+                        const event = {
+                            type: 'mousemove',
+                            timestamp: now - this.startTime,
+                            data: {
+                                x: e.clientX,
+                                y: e.clientY,
+                                movementX: e.movementX,
+                                movementY: e.movementY
+                            }
+                        };
+
+                        this.addEvent(event);
+                    };
+
+                    document.addEventListener('mousemove', mouseMoveHandler, { passive: true });
+                    this.eventListeners.push({ type: 'mousemove', handler: mouseMoveHandler });
+                }
+
+                // 输入事件（谨慎使用）
+                if (this.config.recordKeyPress) {
+                    const inputHandler = (e) => {
+                        if (!this.isRecording) return;
+
+                        const target = e.target;
+                        const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+                        if (!isInput) return;
+
+                        const event = {
+                            type: 'input',
+                            timestamp: Date.now() - this.startTime,
+                            data: {
+                                target: this.getElementSelector(target),
+                                value: this.config.maskInputs ? this.maskValue(target.value) : target.value,
+                                inputType: e.inputType || 'unknown'
+                            }
+                        };
+
+                        this.addEvent(event);
+                    };
+
+                    document.addEventListener('input', inputHandler, true);
+                    this.eventListeners.push({ type: 'input', handler: inputHandler });
+                }
+
+                // 页面可见性变化
+                const visibilityHandler = () => {
+                    if (!this.isRecording) return;
+
+                    const event = {
+                        type: 'visibility',
+                        timestamp: Date.now() - this.startTime,
+                        data: {
+                            state: document.visibilityState,
+                            hidden: document.hidden
+                        }
+                    };
+
+                    this.addEvent(event);
+                };
+
+                document.addEventListener('visibilitychange', visibilityHandler);
+                this.eventListeners.push({ type: 'visibility', handler: visibilityHandler });
+            }
+
+            /**
+             * 停止录制
+             */
+            stop() {
+                if (!this.isRecording) return null;
+
+                this.isRecording = false;
+
+                // 停止MutationObserver
+                if (this.observer) {
+                    this.observer.disconnect();
+                    this.observer = null;
+                }
+
+                // 移除事件监听
+                this.removeEventListeners();
+
+                // 添加结束事件
+                const endEvent = {
+                    type: 'end',
+                    timestamp: Date.now() - this.startTime,
+                    data: {
+                        totalEvents: this.events.length,
+                        duration: Date.now() - this.startTime
+                    }
+                };
+
+                this.events.push(endEvent);
+
+                console.log('⏹️ 录屏停止，事件数:', this.events.length);
+
+                // 优化数据
+                const optimizedEvents = this.optimizeEvents();
+
+                return {
+                    events: optimizedEvents,
+                    metadata: {
+                        startTime: this.startTime,
+                        duration: Date.now() - this.startTime,
+                        eventCount: this.events.length,
+                        url: window.location.href,
+                        userAgent: navigator.userAgent
+                    }
+                };
+            }
+
+            /**
+             * 优化事件数据（增量更新）
+             */
+            optimizeEvents() {
+                if (this.events.length <= 1) return this.events;
+
+                const optimized = [this.events[0]]; // 保留完整快照
+
+                for (let i = 1; i < this.events.length; i++) {
+                    const event = this.events[i];
+
+                    // 移除过于频繁的鼠标移动事件
+                    if (event.type === 'mousemove' && i > 1) {
+                        const prevEvent = this.events[i - 1];
+                        if (prevEvent.type === 'mousemove') {
+                            const timeDiff = event.timestamp - prevEvent.timestamp;
+                            const distance = Math.sqrt(
+                                Math.pow(event.data.x - prevEvent.data.x, 2) +
+                                Math.pow(event.data.y - prevEvent.data.y, 2)
+                            );
+
+                            // 如果时间间隔短且移动距离小，跳过
+                            if (timeDiff < 50 && distance < 5) continue;
+                        }
+                    }
+
+                    optimized.push(event);
+                }
+
+                console.log(`📊 优化后事件数: ${optimized.length} (减少${this.events.length - optimized.length})`);
+                return optimized;
+            }
+
+            /**
+             * 添加事件（带限制检查）
+             */
+            addEvent(event) {
+                // 检查事件数量限制
+                if (this.events.length >= this.config.maxEvents) {
+                    console.warn('达到最大事件数量限制，停止录制');
+                    this.stop();
+                    return;
+                }
+
+                this.events.push(event);
+
+                // 实时数据统计
+                if (this.events.length % 100 === 0) {
+                    console.log(`📈 已录制 ${this.events.length} 个事件`);
+                }
+            }
+
+            /**
+             * 移除所有事件监听
+             */
+            removeEventListeners() {
+                this.eventListeners.forEach(({ type, handler }) => {
+                    document.removeEventListener(type, handler, true);
+                });
+
+                window.removeEventListener('scroll', this.scrollHandler);
+                this.eventListeners = [];
+            }
+
+            /**
+             * 获取元素选择器
+             */
+            getElementSelector(element) {
+                if (!element || element === document.documentElement) return 'html';
+
+                const parts = [];
+                let current = element;
+
+                while (current && current !== document.documentElement) {
+                    let selector = current.tagName.toLowerCase();
+
+                    if (current.id) {
+                        selector += `#${current.id}`;
+                        parts.unshift(selector);
+                        break;
+                    } else {
+                        // 添加类名
+                        if (current.className && typeof current.className === 'string') {
+                            const classes = current.className.trim().split(/\s+/);
+                            if (classes.length > 0) {
+                                selector += `.${classes[0]}`;
+                            }
+                        }
+
+                        // 添加兄弟节点索引
+                        const siblings = Array.from(current.parentNode.children);
+                        const index = siblings.indexOf(current);
+                        if (index > 0) {
+                            selector += `:nth-child(${index + 1})`;
+                        }
+
+                        parts.unshift(selector);
+                        current = current.parentNode;
+                    }
+                }
+
+                return parts.join(' > ');
+            }
+
+            /**
+             * 序列化Mutation记录
+             */
+            serializeMutation(mutation) {
+                const data = {
+                    type: mutation.type,
+                    target: this.getElementSelector(mutation.target)
+                };
+
+                switch (mutation.type) {
+                    case 'attributes':
+                        data.attributeName = mutation.attributeName;
+                        data.oldValue = mutation.oldValue;
+                        data.newValue = mutation.target.getAttribute(mutation.attributeName);
+                        break;
+
+                    case 'characterData':
+                        data.oldValue = mutation.oldValue;
+                        data.newValue = mutation.target.textContent;
+                        break;
+
+                    case 'childList':
+                        data.addedNodes = [];
+                        data.removedNodes = [];
+
+                        mutation.addedNodes.forEach(node => {
+                            data.addedNodes.push(this.serializeDOM(node));
+                        });
+
+                        mutation.removedNodes.forEach(node => {
+                            data.removedNodes.push(this.serializeDOM(node));
+                        });
+                        break;
+                }
+
+                return data;
+            }
+
+            /**
+             * 辅助方法
+             */
+            shouldSerializeAttribute(attrName) {
+                // 排除敏感属性
+                const excludeAttrs = ['password', 'autocomplete', 'creditcard', 'cvc'];
+                return !excludeAttrs.some(exclude =>
+                    attrName.toLowerCase().includes(exclude)
+                );
+            }
+
+            shouldIgnoreMutation(mutation) {
+                // 忽略script/style标签的变化
+                const tagName = mutation.target.tagName;
+                if (tagName === 'SCRIPT' || tagName === 'STYLE') {
+                    return true;
+                }
+
+                // 忽略微小文本变化
+                if (mutation.type === 'characterData') {
+                    const oldValue = mutation.oldValue || '';
+                    const newValue = mutation.target.textContent || '';
+                    return oldValue.trim() === newValue.trim();
+                }
+
+                return false;
+            }
+
+            maskValue(value) {
+                if (!value) return '';
+                return '*'.repeat(Math.min(value.length, 10));
+            }
+
+            maskText(text) {
+                if (text.length < 10) return text;
+                return text.substring(0, 3) + '...' + text.substring(text.length - 3);
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            isVoidElement(tagName) {
+                const voidElements = [
+                    'area', 'base', 'br', 'col', 'embed', 'hr',
+                    'img', 'input', 'link', 'meta', 'param',
+                    'source', 'track', 'wbr'
+                ];
+                return voidElements.includes(tagName);
+            }
+
+            /**
+             * 导出数据
+             */
+            exportData(format = 'json') {
+                const data = {
+                    events: this.events,
+                    metadata: {
+                        version: '1.0',
+                        recordedAt: new Date().toISOString(),
+                        url: window.location.href
+                    }
+                };
+
+                switch (format) {
+                    case 'json':
+                        return JSON.stringify(data, null, 2);
+
+                    case 'compressed':
+                        return this.compressData(data);
+
+                    default:
+                        return data;
+                }
+            }
+
+            /**
+             * 压缩数据（简单实现）
+             */
+            compressData(data) {
+                const jsonStr = JSON.stringify(data);
+
+                // 简单的重复字符串压缩
+                let compressed = jsonStr;
+                const repeated = jsonStr.match(/(.{10,}?)\1+/g);
+
+                if (repeated) {
+                    repeated.forEach((repeat, index) => {
+                        const unique = repeat.substring(0, repeat.length / 2);
+                        compressed = compressed.replace(
+                            new RegExp(repeat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+                            `[R${index}:${unique.length}]`
+                        );
+                    });
+                }
+
+                return compressed;
+            }
+
+            /**
+             * 获取当前状态
+             */
+            getStatus() {
+                return {
+                    isRecording: this.isRecording,
+                    eventCount: this.events.length,
+                    startTime: this.startTime,
+                    duration: this.isRecording ? Date.now() - this.startTime : 0,
+                    memoryUsage: this.getMemoryUsage()
+                };
+            }
+
+            getMemoryUsage() {
+                const dataStr = JSON.stringify(this.events);
+                const bytes = new TextEncoder().encode(dataStr).length;
+
+                return {
+                    bytes,
+                    kb: (bytes / 1024).toFixed(2),
+                    mb: (bytes / (1024 * 1024)).toFixed(3)
+                };
+            }
+        }
+
+        /**
+         * 原生录屏回放引擎
+         */
+        class NativeScreenReplayer {
+            constructor(containerId, options = {}) {
+                this.container = document.getElementById(containerId);
+                this.options = {
+                    speed: 1.0,
+                    autoplay: false,
+                    showControls: true,
+                    loop: false,
+                    ...options
+                };
+
+                this.events = [];
+                this.currentIndex = 0;
+                this.isPlaying = false;
+                this.startTime = null;
+                this.timer = null;
+                this.snapshot = null;
+
+                if (this.options.showControls) {
+                    this.createControls();
+                }
+
+                console.log('🎬 回放引擎初始化完成');
+            }
+
+            /**
+             * 加载录制数据
+             */
+            load(data) {
+                if (typeof data === 'string') {
+                    data = JSON.parse(data);
+                }
+
+                this.events = data.events || data;
+
+                // 查找完整快照
+                this.snapshot = this.events.find(e => e.type === 'full-snapshot');
+
+                if (!this.snapshot) {
+                    console.error('未找到初始快照');
+                    return false;
+                }
+
+                console.log(`📁 加载 ${this.events.length} 个事件`);
+                return true;
+            }
+
+            /**
+             * 开始回放
+             */
+            play() {
+                if (this.isPlaying) return;
+
+                this.isPlaying = true;
+                this.startTime = Date.now();
+                this.currentIndex = 0;
+
+                // 1. 恢复初始快照
+                this.restoreSnapshot();
+
+                // 2. 开始播放事件
+                this.playNextEvent();
+
+                this.updateControls();
+                console.log('▶️ 回放开始');
+            }
+
+            /**
+             * 恢复初始快照
+             */
+            restoreSnapshot() {
+                if (!this.snapshot) return;
+
+                // 创建iframe隔离环境（推荐）
+                if (!this.iframe) {
+                    this.iframe = document.createElement('iframe');
+                    this.iframe.style.cssText = `
+                width: 100%;
+                height: 100%;
+                border: none;
+                background: white;
+            `;
+                    this.container.innerHTML = '';
+                    this.container.appendChild(this.iframe);
+
+                    // 等待iframe加载
+                    this.iframe.onload = () => {
+                        this.applySnapshot(this.snapshot.data.html);
+                    };
+
+                    this.iframe.srcdoc = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { margin: 0; padding: 20px; }
+                        .replay-highlight { outline: 2px solid #f56565; }
+                    </style>
+                </head>
+                <body></body>
+                </html>
+            `;
+                } else {
+                    this.applySnapshot(this.snapshot.data.html);
+                }
+            }
+
+            /**
+             * 应用快照HTML
+             */
+            applySnapshot(html) {
+                if (!this.iframe) return;
+
+                const doc = this.iframe.contentDocument;
+                if (!doc) return;
+
+                // 保存滚动位置
+                const scrollX = doc.documentElement.scrollLeft;
+                const scrollY = doc.documentElement.scrollTop;
+
+                // 应用HTML
+                doc.body.innerHTML = html;
+
+                // 恢复滚动位置
+                doc.documentElement.scrollLeft = scrollX;
+                doc.documentElement.scrollTop = scrollY;
+            }
+
+            /**
+             * 播放下一个事件
+             */
+            playNextEvent() {
+                if (!this.isPlaying || this.currentIndex >= this.events.length) {
+                    this.stop();
+                    return;
+                }
+
+                const event = this.events[this.currentIndex];
+                const nextEvent = this.events[this.currentIndex + 1];
+
+                // 计算延迟
+                let delay = 0;
+                if (nextEvent) {
+                    delay = (nextEvent.timestamp - event.timestamp) / this.options.speed;
+                }
+
+                // 应用当前事件
+                this.applyEvent(event);
+
+                // 准备下一个事件
+                this.currentIndex++;
+
+                if (delay > 0) {
+                    this.timer = setTimeout(() => {
+                        this.playNextEvent();
+                    }, delay);
+                } else {
+                    this.playNextEvent();
+                }
+
+                this.updateProgress();
+            }
+
+            /**
+             * 应用单个事件
+             */
+            applyEvent(event) {
+                if (!this.iframe) return;
+
+                const doc = this.iframe.contentDocument;
+                if (!doc) return;
+
+                try {
+                    switch (event.type) {
+                        case 'mutation':
+                            this.applyMutation(event.data, doc);
+                            break;
+
+                        case 'click':
+                            this.highlightClick(event.data, doc);
+                            break;
+
+                        case 'scroll':
+                            this.applyScroll(event.data, doc);
+                            break;
+
+                        case 'mousemove':
+                            // 可选：显示鼠标轨迹
+                            break;
+
+                        case 'input':
+                            this.applyInput(event.data, doc);
+                            break;
+                    }
+                } catch (error) {
+                    console.warn(`应用事件失败: ${event.type}`, error);
+                }
+            }
+
+            /**
+             * 应用DOM变化
+             */
+            applyMutation(data, doc) {
+                const target = this.querySelector(data.target, doc);
+                if (!target) {
+                    console.warn(`未找到目标元素: ${data.target}`);
+                    return;
+                }
+
+                switch (data.type) {
+                    case 'attributes':
+                        if (data.newValue !== null) {
+                            target.setAttribute(data.attributeName, data.newValue);
+                        } else {
+                            target.removeAttribute(data.attributeName);
+                        }
+                        break;
+
+                    case 'characterData':
+                        target.textContent = data.newValue;
+                        break;
+
+                    case 'childList':
+                        // 移除节点
+                        data.removedNodes.forEach(nodeHtml => {
+                            // 简化实现：通过选择器移除
+                        });
+
+                        // 添加节点
+                        data.addedNodes.forEach(nodeHtml => {
+                            const temp = doc.createElement('div');
+                            temp.innerHTML = nodeHtml;
+                            if (temp.firstChild) {
+                                target.appendChild(temp.firstChild);
+                            }
+                        });
+                        break;
+                }
+            }
+
+            /**
+             * 高亮点击事件
+             */
+            highlightClick(data, doc) {
+                const target = this.querySelector(data.target, doc);
+                if (!target) return;
+
+                // 添加高亮样式
+                target.classList.add('replay-highlight');
+
+                // 移除高亮
+                setTimeout(() => {
+                    target.classList.remove('replay-highlight');
+                }, 500);
+            }
+
+            /**
+             * 应用滚动
+             */
+            applyScroll(data, doc) {
+                doc.documentElement.scrollLeft = data.scrollX;
+                doc.documentElement.scrollTop = data.scrollY;
+            }
+
+            /**
+             * 应用输入
+             */
+            applyInput(data, doc) {
+                const target = this.querySelector(data.target, doc);
+                if (!target || !target.value !== undefined) return;
+
+                target.value = data.value;
+            }
+
+            /**
+             * 安全的选择器查询
+             */
+            querySelector(selector, doc) {
+                try {
+                    // 简化选择器查询
+                    if (selector.includes('#') && !selector.includes(' ')) {
+                        const id = selector.split('#')[1];
+                        return doc.getElementById(id);
+                    }
+
+                    // 回退到通用查询
+                    return doc.querySelector(selector);
+                } catch (error) {
+                    console.warn(`选择器查询失败: ${selector}`);
+                    return null;
+                }
+            }
+
+            /**
+             * 暂停回放
+             */
+            pause() {
+                this.isPlaying = false;
+                if (this.timer) {
+                    clearTimeout(this.timer);
+                    this.timer = null;
+                }
+
+                this.updateControls();
+                console.log('⏸️ 回放暂停');
+            }
+
+            /**
+             * 停止回放
+             */
+            stop() {
+                this.isPlaying = false;
+                this.currentIndex = 0;
+
+                if (this.timer) {
+                    clearTimeout(this.timer);
+                    this.timer = null;
+                }
+
+                this.updateControls();
+                console.log('⏹️ 回放停止');
+            }
+
+            /**
+             * 跳转到指定时间
+             */
+            seekTo(time) {
+                this.pause();
+
+                // 找到时间点之前的最新快照
+                let snapshotIndex = 0;
+                for (let i = 0; i < this.events.length; i++) {
+                    if (this.events[i].timestamp <= time &&
+                        this.events[i].type === 'full-snapshot') {
+                        snapshotIndex = i;
+                    }
+                }
+
+                // 恢复快照
+                this.snapshot = this.events[snapshotIndex];
+                this.restoreSnapshot();
+
+                // 应用快照后的事件
+                this.currentIndex = snapshotIndex + 1;
+                while (this.currentIndex < this.events.length &&
+                    this.events[this.currentIndex].timestamp <= time) {
+                    this.applyEvent(this.events[this.currentIndex]);
+                    this.currentIndex++;
+                }
+
+                this.updateProgress();
+            }
+
+            /**
+             * 创建控制UI
+             */
+            createControls() {
+                this.controls = document.createElement('div');
+                this.controls.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+        `;
+
+                // 播放/暂停按钮
+                this.playBtn = document.createElement('button');
+                this.playBtn.textContent = '▶';
+                this.playBtn.onclick = () => this.togglePlay();
+
+                // 停止按钮
+                this.stopBtn = document.createElement('button');
+                this.stopBtn.textContent = '⏹';
+                this.stopBtn.onclick = () => this.stop();
+
+                // 进度条
+                this.progressBar = document.createElement('input');
+                this.progressBar.type = 'range';
+                this.progressBar.min = 0;
+                this.progressBar.max = 100;
+                this.progressBar.style.width = '200px';
+                this.progressBar.oninput = (e) => {
+                    const percent = e.target.value;
+                    const totalTime = this.getTotalDuration();
+                    this.seekTo((percent / 100) * totalTime);
+                };
+
+                // 时间显示
+                this.timeDisplay = document.createElement('span');
+                this.timeDisplay.style.minWidth = '80px';
+
+                // 速度控制
+                this.speedSelect = document.createElement('select');
+                [0.5, 1.0, 1.5, 2.0].forEach(speed => {
+                    const option = document.createElement('option');
+                    option.value = speed;
+                    option.textContent = `${speed}x`;
+                    if (speed === this.options.speed) option.selected = true;
+                    this.speedSelect.appendChild(option);
+                });
+                this.speedSelect.onchange = (e) => {
+                    this.options.speed = parseFloat(e.target.value);
+                    if (this.isPlaying) {
+                        this.pause();
+                        this.play();
+                    }
+                };
+
+                // 组装控件
+                this.controls.appendChild(this.playBtn);
+                this.controls.appendChild(this.stopBtn);
+                this.controls.appendChild(this.progressBar);
+                this.controls.appendChild(this.timeDisplay);
+                this.controls.appendChild(this.speedSelect);
+
+                document.body.appendChild(this.controls);
+            }
+
+            /**
+             * 更新控制UI
+             */
+            updateControls() {
+                if (!this.controls) return;
+
+                this.playBtn.textContent = this.isPlaying ? '⏸' : '▶';
+                this.updateProgress();
+            }
+
+            /**
+             * 更新进度显示
+             */
+            updateProgress() {
+                if (!this.progressBar || !this.timeDisplay) return;
+
+                const currentTime = this.currentIndex < this.events.length
+                    ? this.events[this.currentIndex].timestamp
+                    : this.getTotalDuration();
+
+                const totalTime = this.getTotalDuration();
+                const percent = totalTime > 0 ? (currentTime / totalTime) * 100 : 0;
+
+                this.progressBar.value = percent;
+
+                // 格式化时间显示
+                const formatTime = (ms) => {
+                    const seconds = Math.floor(ms / 1000);
+                    const minutes = Math.floor(seconds / 60);
+                    return `${minutes}:${(seconds % 60).toString().padStart(2, '0')}`;
+                };
+
+                this.timeDisplay.textContent =
+                    `${formatTime(currentTime)} / ${formatTime(totalTime)}`;
+            }
+
+            /**
+             * 获取总时长
+             */
+            getTotalDuration() {
+                if (this.events.length === 0) return 0;
+                return this.events[this.events.length - 1].timestamp;
+            }
+
+            /**
+             * 切换播放状态
+             */
+            togglePlay() {
+                if (this.isPlaying) {
+                    this.pause();
+                } else {
+                    if (this.currentIndex >= this.events.length) {
+                        this.currentIndex = 0;
+                    }
+                    this.play();
+                }
+            }
+
+            /**
+             * 销毁实例
+             */
+            destroy() {
+                this.stop();
+                if (this.controls && this.controls.parentNode) {
+                    this.controls.parentNode.removeChild(this.controls);
+                }
+                if (this.iframe && this.iframe.parentNode) {
+                    this.iframe.parentNode.removeChild(this.iframe);
+                }
+            }
+        }
+
+         // 全局实例
+        let recorder = null;
+        let replayer = null;
+        let recordingData = null;
+        
+        // 演示区域交互函数
+        function addDemoItem() {
+            const list = document.getElementById('itemList');
+            const item = document.createElement('div');
+            item.className = 'demo-item';
+            item.style.cssText = `
+                padding: 10px;
+                margin: 5px 0;
+                background: #e2e8f0;
+                border-radius: 4px;
+                border-left: 4px solid #667eea;
+            `;
+            item.textContent = `项目 ${list.children.length + 1} - ${new Date().toLocaleTimeString()}`;
+            list.appendChild(item);
+        }
+        
+        function changeDemoColor() {
+            const colors = ['#ffebee', '#e8f5e9', '#e3f2fd', '#fff3e0', '#f3e5f5'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            document.getElementById('demoArea').style.backgroundColor = color;
+        }
+        
+        function clearDemoItems() {
+            document.getElementById('itemList').innerHTML = '';
+        }
+        
+        // 录制控制
+        function startNativeRecording() {
+            // 初始化录制器
+            recorder = new NativeScreenRecorder({
+                maskInputs: true,
+                recordScroll: true,
+                recordClicks: true,
+                recordMouseMove: false,
+                maxEvents: 5000
+            });
+            
+            // 开始录制
+            recorder.start();
+            
+            // 更新UI
+            document.getElementById('recordingStatus').classList.add('show');
+            document.getElementById('replayBtn').disabled = true;
+            
+            // 开始更新统计信息
+            updateStats();
+            
+            console.log('🎥 原生录屏已开始');
+        }
+        
+        function stopNativeRecording() {
+            if (!recorder) return;
+            
+            // 停止录制
+            recordingData = recorder.stop();
+            
+            // 更新UI
+            document.getElementById('recordingStatus').classList.remove('show');
+            document.getElementById('replayBtn').disabled = false;
+            
+            // 显示统计
+            showFinalStats();
+            
+            console.log('📊 录制完成，数据大小:', 
+                recorder.getMemoryUsage().kb + ' KB');
+        }
+        
+        function replayRecording() {
+            if (!recordingData || !recordingData.events) {
+                alert('请先录制一些内容！');
+                return;
+            }
+            
+            // 初始化回放器
+            replayer = new NativeScreenReplayer('replayContainer', {
+                speed: 1.0,
+                autoplay: true,
+                showControls: true
+            });
+            
+            // 加载数据
+            replayer.load(recordingData);
+            
+            // 开始回放
+            replayer.play();
+            
+            console.log('🎬 开始回放');
+        }
+        
+        function exportRecording() {
+            if (!recorder || !recorder.events.length) {
+                alert('没有可导出的数据！');
+                return;
+            }
+            
+            const data = recorder.exportData('json');
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            // 创建下载链接
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `recording-${Date.now()}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            
+            console.log('💾 数据已导出');
+        }
+        
+        // 统计信息
+        function updateStats() {
+            if (!recorder || !recorder.isRecording) return;
+            
+            const stats = recorder.getStatus();
+            const container = document.getElementById('statsContainer');
+            
+            container.innerHTML = `
+                <div class="stat-card">
+                    <strong>事件数量</strong>
+                    <div style="font-size: 24px; color: #667eea;">${stats.eventCount}</div>
+                </div>
+                <div class="stat-card">
+                    <strong>录制时长</strong>
+                    <div style="font-size: 24px; color: #48bb78;">${(stats.duration/1000).toFixed(1)}s</div>
+                </div>
+                <div class="stat-card">
+                    <strong>内存使用</strong>
+                    <div style="font-size: 24px; color: #ed8936;">${stats.memoryUsage.kb} KB</div>
+                </div>
+                <div class="stat-card">
+                    <strong>状态</strong>
+                    <div style="font-size: 24px; color: #f56565;">${stats.isRecording ? '录制中' : '已停止'}</div>
+                </div>
+            `;
+            
+            // 继续更新
+            setTimeout(updateStats, 1000);
+        }
+        
+        function showFinalStats() {
+            if (!recordingData) return;
+            
+            const stats = recorder.getStatus();
+            const container = document.getElementById('statsContainer');
+            
+            container.innerHTML = `
+                <div class="stat-card">
+                    <strong>录制摘要</strong>
+                    <div>事件: ${stats.eventCount}</div>
+                    <div>时长: ${(stats.duration/1000).toFixed(1)}秒</div>
+                    <div>大小: ${stats.memoryUsage.kb} KB</div>
+                </div>
+                <div class="stat-card">
+                    <strong>数据信息</strong>
+                    <div>URL: ${new URL(recordingData.metadata.url).hostname}</div>
+                    <div>时间: ${new Date(recordingData.metadata.startTime).toLocaleTimeString()}</div>
+                    <div>设备: ${navigator.userAgent.substring(0, 50)}...</div>
+                </div>
+            `;
+        }
+        
+        // 页面卸载时停止录制
+        window.addEventListener('beforeunload', () => {
+            if (recorder && recorder.isRecording) {
+                recorder.stop();
+                console.log('🚪 页面关闭，录制已自动停止');
+            }
+        });
+        
+        // 初始化演示
+        window.addEventListener('load', () => {
+            // 添加几个初始项目
+            for (let i = 0; i < 2; i++) {
+                setTimeout(addDemoItem, 100 * i);
+            }
+            
+            console.log('✅ 演示页面已加载');
+            console.log('💡 点击"开始无感录制"按钮，然后在演示区域进行操作');
+        });
+    </script>
+</body>
+
+</html>
