@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        .chat {
+            box-sizing: border-box;
+            margin: 60px auto;
+            padding: 20px;
+            width: 600px;
+            height: 600px;
+            font-size: 0;
+            border: 1px solid;
+        }
+
+        .chat-input {
+            box-sizing: border-box;
+            padding: 6px;
+            width: 100%;
+            height: 30px;
+        }
+        
+        .chat-content {
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 14px;
+            padding: 0 20px;
+            height: calc(100% - 42px);
+            border: 1px solid;
+        }
+
+        .chat-message {
+            display: flex;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .chat-message span {
+            flex: 1;
+            margin-left: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat">
+        <input type="text" placeholder="请输入" class="chat-input" onchange="handleChange(event)">
+        <div class="chat-content">
+           
+        </div>
+    </div>
+    
+    
+    
+    <script src="./dist/index.umd.js"></script>
+    <script>
+        const { StreamRequest } = s
+        const sr = new StreamRequest('https://lightsoft.life:20023/v1/api/data/chat', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            parseResponse: true
+        })
+
+        const messages = [
+            {
+                role: 'system',
+                content: 'You are a helpful assistant.',
+            }, 
+            {
+                role: 'user',
+                content: '你好'
+            }
+        ]
+
+        sr.send({
+            data: messages
+        })
+
+        let message = ''
+        let value = ''
+        sr.onMessage(({ done, data }) => {
+            if (!done) message += data
+            else {
+                const row = document.createElement('div')
+
+                row.className = 'chat-content-row'
+                row.innerHTML = `<div class="chat-message">用户：<span>${value}</span></div>
+                <div class="chat-message">AI:<span>${message}s</span></div>
+                `
+                document.querySelector('.chat-content').appendChild(row)
+                message = ''
+            }
+        })
+      
+        sr.onError((error) => {
+            console.log('error:', error)
+        })
+
+        function handleChange(event) {
+            value = event.target.value 
+            messages.push({
+                role: 'user',
+                content: value
+            })
+            sr.send({
+                data: messages
+            })
+            event.target.value = ''
+        }
+    </script>
+</body>
+</html>
