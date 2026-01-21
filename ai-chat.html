@@ -51,9 +51,7 @@
 <body>
     <div class="chat">
         <input type="text" placeholder="请输入" class="chat-input" onchange="handleChange(event)">
-        <div class="chat-content">
-           
-        </div>
+        <div class="chat-content"></div>
     </div>
     
     
@@ -91,7 +89,7 @@
 
                 row.className = 'chat-content-row'
                 row.innerHTML = `<div class="chat-message">用户：<span>${value}</span></div>
-                <div class="chat-message">AI:<span>${message}s</span></div>
+                <div class="chat-message">AI:<span>${message}</span></div>
                 `
                 document.querySelector('.chat-content').appendChild(row)
                 message = ''
