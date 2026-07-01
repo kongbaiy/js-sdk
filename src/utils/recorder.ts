@@ -40,7 +40,7 @@ export class AudioRecorder {
         bitDepth: 16,
     }
 
-    private timer: NodeJS.Timeout | null = null;
+    private timer: ReturnType<typeof setInterval> | null = null;
     private timerCount: number = 0;
 
     private stopCallback: ((audioChunks: Blob[]) => void) | null = null;

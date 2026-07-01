@@ -21,6 +21,10 @@
     <button onclick="tour.start()">开启</button>
     <button onclick="sendMessage()">send message</button>
     <p class="count"></p>
+    <span class="count2"></span>
+    <span class="count3"></span>
+
+
     <button class="add-count" onclick="handleAddCount()">add count</button>
 
 
@@ -131,6 +135,14 @@
             num = current
             document.querySelector('.count').innerHTML = num;
         });
+
+        s.countsUp([[1,100], [0,60]], (counts) => {
+            const { value } = counts[0]
+            document.querySelector('.count2').innerHTML = value;
+
+            const { value: value2 } = counts[1]
+            document.querySelector('.count3').innerHTML = value2;
+        })
 
         function handleAddCount() {
              s.countUp(num, 160, (current) => {
