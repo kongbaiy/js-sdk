@@ -86,7 +86,7 @@ export const countsUp = (counts: number[][], callback: (current: CountsUpCallbac
                         clearInterval(this.interval!);
                         this.interval = null;
                     }
-
+                    
                     callback(resultCounts);
               }, delay);
             }
@@ -106,12 +106,16 @@ export const countsUp = (counts: number[][], callback: (current: CountsUpCallbac
             const buffers = resultCounts[i].buffers || [];
             const value = current + start;
 
+            if (start >= end) {
+                throw new Error(`The start value (${start}) must be less than the end value (${end}) for count ${ + 1}.`);
+            }
+
             // If the current value exceeds the maximum and it's the last count, we stop the counting process.
             if (value >= max && i === counts.length - 1) stop = true;
 
             // If the current value exceeds the end value, we skip the current iteration and move to the next count.
             if (value >= end) continue;
-
+            
             if (value >= buffers[0] && value < buffers[1]) {
               // If the current value is within the buffer range, we start the buffer counting process.
               resultCounts[i].startBufferCount?.(buffers[0], 90);
