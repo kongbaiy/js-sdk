@@ -81,12 +81,13 @@ export const countsUp = (counts: number[][], callback: (current: CountsUpCallbac
             if (!this.interval) {
                 this.interval = setInterval(() => {
                     this.value += 1;
-                    callback(resultCounts);
 
-                    if (this.value >= range[1] - buffer) {
+                    if (this.value >= range[1] - buffer || this.value >= range[1]) {
                         clearInterval(this.interval!);
                         this.interval = null;
                     }
+
+                    callback(resultCounts);
               }, delay);
             }
         }
@@ -99,7 +100,7 @@ export const countsUp = (counts: number[][], callback: (current: CountsUpCallbac
             clearInterval(timer!);
             timer = null;
         }
-
+        
         for (let i = 0;i < counts.length; i++) {
             const [start, end] = counts[i]
             const buffers = resultCounts[i].buffers || [];
