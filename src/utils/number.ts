@@ -108,21 +108,6 @@ export const countsUp = (counts: number[][], callback: (current: CountsUpCallbac
             // If the current value exceeds the maximum and it's the last count, we stop the counting process.
             if (value >= max && i === counts.length - 1) stop = true;
 
-            // If the current value is within the range of the count, we update the value and status accordingly.
-            // if (value <= end) {
-            //     if (value >= buffers[0] && value < buffers[1]) {  
-            //         // If the current value is within the buffer range, we start the buffer counting process.
-            //         resultCounts[i].startBufferCount?.(buffers[0], 90);
-            //     } else if (value >= buffers[1]) {  
-            //         // If the current value exceeds the second buffer, we start the buffer counting process with a longer delay.
-            //         resultCounts[i].startBufferCount?.(0, 200);
-            //     } else {  
-            //         // If the current value is below the first buffer, we update the value and status directly.
-            //         resultCounts[i].value = value;
-            //         resultCounts[i].status = value < end ? 'running' : 'finished';
-            //     }
-            // }
-
             // If the current value exceeds the end value, we skip the current iteration and move to the next count.
             if (value >= end) continue;
 
