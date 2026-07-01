@@ -57,65 +57,90 @@ interface CountsUpCallbackOptions {
     value: number
     status: 'waiting' | 'running' | 'finished'
     interval?: ReturnType<typeof setInterval> | null
+    buffers?: number[]
+    startBufferCount?: (buffer: number, delay: number) => void
+}
+
+const getBufferValue = (value: number, buffer: number) => {
+    if (value / buffer > 2) return value - buffer
+    return 0
 }
 
 export const countsUp = (counts: number[][], callback: (current: CountsUpCallbackOptions[]) => void) => {
-    const max = Math.max(...counts.flat());
-    const resultCounts: CountsUpCallbackOptions[] = new Array(counts.length).fill({
-        value: 0,
+    const countsFlat = counts.flat();
+    const max = Math.max(...countsFlat);
+    const resultCounts: CountsUpCallbackOptions[] = counts.map((range) => ({
+        value: range[0],
         status: 'waiting',
-        interval: null
-    });
+        interval: null as CountsUpCallbackOptions['interval'],
+        buffers: [
+            getBufferValue(range[1], 16),
+            getBufferValue(range[1], 6)
+        ],
+        startBufferCount(buffer: number, delay: number = 0) {
+            if (!this.interval) {
+                this.interval = setInterval(() => {
+                    this.value += 1;
+                    callback(resultCounts);
+
+                    if (this.value >= range[1] - buffer) {
+                        clearInterval(this.interval!);
+                        this.interval = null;
+                    }
+              }, delay);
+            }
+        }
+    }))
 
     let current = 0;
-
+    let stop = false;
     const run = () => {
-        if (current >= max) {
-            clearInterval(timer!)
-            timer = null
+        if (current >= max || stop) {
+            clearInterval(timer!);
+            timer = null;
         }
 
         for (let i = 0;i < counts.length; i++) {
             const [start, end] = counts[i]
-            const buffers = [
-                parseInt(16 / 100 * end  + ''),
-                parseInt(6 / 100 * end  + '')
-            ]
-           
-            if (current >= start && current <= end) {
-                if (current >= end - buffers[0] && current < end - buffers[1]) {
-                    if (!resultCounts[i].interval) {
-                        resultCounts[i].interval = setInterval(() => {
-                            resultCounts[i].value += 1;
-                            callback(resultCounts)
+            const buffers = resultCounts[i].buffers || [];
+            const value = current + start;
 
-                            if (resultCounts[i].value >= end - buffers[0]) {
-                                clearInterval(resultCounts[i].interval!)
-                                resultCounts[i].interval = null
-                            }
-                        }, 90)
-                    }
-                  
-                } else if (current >= end - buffers[1]) {
-                    if (!resultCounts[i].interval) {
-                        resultCounts[i].interval = setInterval(() => {
-                            resultCounts[i].value += 1;
-                            callback(resultCounts)
+            // If the current value exceeds the maximum and it's the last count, we stop the counting process.
+            if (value >= max && i === counts.length - 1) stop = true;
 
-                            if (resultCounts[i].value >= end) {
-                                clearInterval(resultCounts[i].interval!)
-                                resultCounts[i].interval = null
-                            }
-                        }, 200)
-                    }
-                } else {
-                    resultCounts[i] = { value: current, status: current < end ? 'running' : 'finished' }
-                }
+            // If the current value is within the range of the count, we update the value and status accordingly.
+            // if (value <= end) {
+            //     if (value >= buffers[0] && value < buffers[1]) {  
+            //         // If the current value is within the buffer range, we start the buffer counting process.
+            //         resultCounts[i].startBufferCount?.(buffers[0], 90);
+            //     } else if (value >= buffers[1]) {  
+            //         // If the current value exceeds the second buffer, we start the buffer counting process with a longer delay.
+            //         resultCounts[i].startBufferCount?.(0, 200);
+            //     } else {  
+            //         // If the current value is below the first buffer, we update the value and status directly.
+            //         resultCounts[i].value = value;
+            //         resultCounts[i].status = value < end ? 'running' : 'finished';
+            //     }
+            // }
+
+            // If the current value exceeds the end value, we skip the current iteration and move to the next count.
+            if (value >= end) continue;
+
+            if (value >= buffers[0] && value < buffers[1]) {
+              // If the current value is within the buffer range, we start the buffer counting process.
+              resultCounts[i].startBufferCount?.(buffers[0], 90);
+            } else if (value >= buffers[1]) {
+              // If the current value exceeds the second buffer, we start the buffer counting process with a longer delay.
+              resultCounts[i].startBufferCount?.(0, 200);
+            } else {
+              // If the current value is below the first buffer, we update the value and status directly.
+              resultCounts[i].value = value;
+              resultCounts[i].status = value < end ? "running" : "finished";
             }
         }
         
        current ++;
-       callback(resultCounts)
+       callback(resultCounts);
     }
 
     let timer: ReturnType<typeof setInterval> | null = setInterval(run, 16);
