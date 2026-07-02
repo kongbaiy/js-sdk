@@ -136,7 +136,7 @@
             document.querySelector('.count').innerHTML = num;
         });
 
-        s.countsUp([[150,160], [num, 60]], (counts) => {
+        s.countGroup([[150,160], [num, 60]], (counts) => {
             document.querySelector('.count2').innerHTML = counts[0].value;
             document.querySelector('.count3').innerHTML = counts[1].value;
         })
@@ -147,8 +147,7 @@
                 document.querySelector('.count').innerHTML = num;
             });
 
-            s.countsUp([[160, 200], [0,60]], (counts) => {
-                console.log('counts: ', counts);
+            s.countGroup([[160, 200], [0,60]], (counts) => {
                 document.querySelector('.count2').innerHTML = counts[0].value;
                 document.querySelector('.count3').innerHTML = counts[1].value;
             })

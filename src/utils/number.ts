@@ -66,7 +66,7 @@ const getBufferValue = (value: number, buffer: number) => {
     return 0
 }
 
-export const countsUp = (counts: number[][], callback: (current: CountsUpCallbackOptions[]) => void) => {
+export const countGroup = (counts: number[][], callback: (current: CountsUpCallbackOptions[]) => void) => {
     const countsFlat = counts.flat();
     const max = Math.max(...countsFlat);
     const resultCounts: CountsUpCallbackOptions[] = counts.map((range) => ({
